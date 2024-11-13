@@ -1,8 +1,4 @@
 #include <iostream>
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/System.hpp>
-
 #include "fluidSolver.h"
 
 using namespace sf;
@@ -31,7 +27,7 @@ int main()
 
     View view = window.getDefaultView();
 
-    /* load font */
+    /* load font and prepare text */
     Font font;
     if (!font.loadFromFile("arial.ttf"))
     {
@@ -39,33 +35,27 @@ int main()
     }
     Text instructions("SHORTCUTS   >>   stop: X | restart: left mouse | zoom: mouse wheel | neighbors : N | (graph : D)", font, 15);
     instructions.setFillColor(Color::Green);
-
     Text* particleLables = new Text[fluidSolver.numFluidParticles];
     for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
     {
         particleLables[i] = Text("", font, 9);
         particleLables[i].setFillColor(Color::Green);
     }
-
     Text cflNumber("", font, 15);
     cflNumber.setFillColor(Color::Green);
     cflNumber.setPosition(Vector2f(0, 15));
     float maxVelocity = 0;
 
-    /* allocate memory for the particles and their shapes */
-    Particle* particles = new Particle[fluidSolver.numParticles];
+    /* allocate memory for the particle shapes */
     CircleShape* drawingCircles = new CircleShape[fluidSolver.numParticles];
-
-    if (!particles || !drawingCircles)
+    if (!fluidSolver.particles || !drawingCircles)
     {
         cout << "Memory allocation failed.\n";
     }
 
-    /* initialize all fluid particles */
-    fluidSolver.initializeFluidParticles(particles, Vector2f(4, 5));
-
-    /* initialize all boundary particles */
-    fluidSolver.initializeBoundaryParticles(particles);
+    /* initialize all particles */
+    fluidSolver.initializeFluidParticles(Vector2f(4, 5));
+    fluidSolver.initializeBoundaryParticles();
 
     /* simulation and rendering loop */
     while (window.isOpen())
@@ -99,7 +89,7 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Left)
                 {
                     Vector2i mousePos = Mouse::getPosition(window);
-                    fluidSolver.initializeFluidParticles(particles, Vector2f((float)mousePos.x / WINDOW_WIDTH * 2 / fluidSolver.H, ((float)WINDOW_HEIGHT - (float)mousePos.y) / WINDOW_WIDTH * 2 / fluidSolver.H));
+                    fluidSolver.initializeFluidParticles(Vector2f((float)mousePos.x / WINDOW_WIDTH * 2 / fluidSolver.H, ((float)WINDOW_HEIGHT - (float)mousePos.y) / WINDOW_WIDTH * 2 / fluidSolver.H));
                     maxVelocity = 0;
                 }
                 break;
@@ -123,10 +113,10 @@ int main()
         if (!stopSimulation)
         {
             /* Update (SPH Fluid Solver) */
-            fluidSolver.neighborSearchNN(particles, 2);
-            fluidSolver.computeDensityAndPressure(particles);
-            fluidSolver.computeAccelerations(particles);
-            fluidSolver.updatePositions(particles);
+            fluidSolver.neighborSearchNN(2);
+            fluidSolver.computeDensityAndPressure();
+            fluidSolver.computeAccelerations();
+            fluidSolver.updatePositions();
         }
 
         /* Draw */
@@ -137,7 +127,7 @@ int main()
         for (size_t i = 0; i < fluidSolver.numParticles; i++)
         {
             drawingCircles[i].setRadius(fluidSolver.H / 2.f * WINDOW_WIDTH / 2.f);    // h is defined as the "diameter"
-            drawingCircles[i].setPosition(Vector2f((particles[i].position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (particles[i].position.y + 1.f) * WINDOW_WIDTH / 2.f));   // the shapes to be drawn have to be updated independently, scale
+            drawingCircles[i].setPosition(Vector2f((fluidSolver.particles[i].position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (fluidSolver.particles[i].position.y + 1.f) * WINDOW_WIDTH / 2.f));   // the shapes to be drawn have to be updated independently, scale
             if (i < fluidSolver.numFluidParticles)
             {
                 drawingCircles[i].setFillColor(Color::Blue);
@@ -150,15 +140,15 @@ int main()
         {
             for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
-                particleLables[i].setString(to_string(particles[i].neighbors.size()));
-                particleLables[i].setPosition(particleCoordsToPixel(particles[i].position));
+                particleLables[i].setString(to_string(fluidSolver.particles[i].neighbors.size()));
+                particleLables[i].setPosition(particleCoordsToPixel(fluidSolver.particles[i].position));
                 window.draw(particleLables[i]);
             }
         }
 
         for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
         {
-            maxVelocity = max(maxVelocity, sqrt(particles[i].velocity.x * particles[i].velocity.x + particles[i].velocity.y * particles[i].velocity.y));
+            maxVelocity = max(maxVelocity, sqrt(fluidSolver.particles[i].velocity.x * fluidSolver.particles[i].velocity.x + fluidSolver.particles[i].velocity.y * fluidSolver.particles[i].velocity.y));
         }
 
         cflNumber.setString("CFL: lambda >= " + to_string((fluidSolver.TIME_STEP * maxVelocity) / fluidSolver.H) + ", maxTimeStep: " + to_string(fluidSolver.H / maxVelocity));
@@ -170,7 +160,6 @@ int main()
     }
 
     /* deallocate memory */
-    delete[] particles;
     delete[] drawingCircles;
     delete[] particleLables;
 

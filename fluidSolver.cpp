@@ -1,8 +1,18 @@
 #include "fluidSolver.h"
-#include <iostream>
 
+FluidSolver::FluidSolver(int size)
+{
+    numFluidParticles = size;
+    numParticles = numBoundaryParticles + size;
+    particles = new Particle[numBoundaryParticles + size];
+}
 
-void FluidSolver::initializeFluidParticles(Particle* particles, Vector2f offset)
+FluidSolver::~FluidSolver()
+{
+    delete[] particles;
+}
+
+void FluidSolver::initializeFluidParticles(Vector2f offset)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -19,7 +29,7 @@ void FluidSolver::initializeFluidParticles(Particle* particles, Vector2f offset)
     }
 }
 
-void FluidSolver::initializeBoundaryParticles(Particle* particles)
+void FluidSolver::initializeBoundaryParticles()
 {
     for (size_t i = numFluidParticles; i < numParticles; i++)
     {
@@ -94,7 +104,7 @@ Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positio
     return w1;
 }
 
-void FluidSolver::neighborSearchNN(Particle* particles, float support)
+void FluidSolver::neighborSearchNN(float support)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -111,7 +121,7 @@ void FluidSolver::neighborSearchNN(Particle* particles, float support)
     }
 }
 
-void FluidSolver::computeDensityAndPressure(Particle* particles)
+void FluidSolver::computeDensityAndPressure()
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -133,7 +143,7 @@ void FluidSolver::computeDensityAndPressure(Particle* particles)
     }
 }
 
-void FluidSolver::updatePositions(Particle* particles)
+void FluidSolver::updatePositions()
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -176,7 +186,7 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
     return -SPH;
 }
 
-void FluidSolver::computeAccelerations(Particle* particles)
+void FluidSolver::computeAccelerations()
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {

@@ -25,49 +25,42 @@ struct Particle
 class FluidSolver // add access
 {
 public:
+    const float STIFFNESS = 300.f; //
+    const float VISCOSITY = 0.02f; //
+    const float TIME_STEP = 0.0012f; //
+
     const float H = 0.025f;
     const float REST_DENSITY = 1.2f;
     const float PRESSURE = 0.f;
     const Vector2f GRAVITY = Vector2f(0.f, -9.81f);
 
-    const float STIFFNESS = 300.f; //
-    const float VISCOSITY = 0.02f; //
-    const float TIME_STEP = 0.0012f; //
-
     int numFluidParticles;
     int numBoundaryParticles = 380;
-    int numParticles = numFluidParticles + numBoundaryParticles;
+    int numParticles;
+
+    Particle* particles;
 
     // constructor
-    FluidSolver(int size)
-    {
-        numFluidParticles = size;
-        numParticles = numBoundaryParticles + size;
-    }
-
+    FluidSolver(int size);
     // destructor
-    ~FluidSolver()
-    {
+    ~FluidSolver();
 
-    }
-
-    // function declarations
     /* */
-    void initializeFluidParticles(Particle* particles, Vector2f offset);
+    void initializeFluidParticles(Vector2f offset);
     /* */
-    void initializeBoundaryParticles(Particle* particles);
+    void initializeBoundaryParticles();
+    /* */
+    void neighborSearchNN(float support);
+    /* */
+    void computeDensityAndPressure();
+    /* */
+    void updatePositions();
+    /* */
+    void computeAccelerations();
     /* */
     float cubicSpline(Vector2f positionA, Vector2f positionB);
     /* */
     Vector2f cubicSplineDerivative(Vector2f positionA, Vector2f positionB);
-    /* */
-    void neighborSearchNN(Particle* particles, float support);
-    /* */
-    void computeDensityAndPressure(Particle* particles);
-    /* */
-    void updatePositions(Particle* particles);
-    /* */
-    void computeAccelerations(Particle* particles);
     /* */
     Vector2f nonPressureAcceleration(Particle p);
     /* */
