@@ -7,15 +7,6 @@
 using namespace sf;
 using namespace std;
 
-const float H = 0.025f;
-const float REST_DENSITY = 1.2f;
-const float PRESSURE = 0.f;
-const Vector2f GRAVITY = Vector2f(0.f, -9.81f);
-
-const float STIFFNESS = 300.f; //
-const float VISCOSITY = 0.02f; //
-const float TIME_STEP = 0.0012f; //
-
 const double PI = 3.14159265358979323846;
 
 /* holds all important information needed at a particle */
@@ -31,26 +22,54 @@ struct Particle
     vector<Particle*> neighbors;    // pointers to all current neighbors
 };
 
+class FluidSolver // add access
+{
+public:
+    const float H = 0.025f;
+    const float REST_DENSITY = 1.2f;
+    const float PRESSURE = 0.f;
+    const Vector2f GRAVITY = Vector2f(0.f, -9.81f);
 
-// function declarations
+    const float STIFFNESS = 300.f; //
+    const float VISCOSITY = 0.02f; //
+    const float TIME_STEP = 0.0012f; //
 
-/* */
-void initializeFluidParticles(Particle* particles, int numFluidParticles, Vector2f offset);
-/* */
-void initializeBoundaryParticles(Particle* particles, int numFluidParticles, int numParticles);
-/* */
-float cubicSpline(Vector2f positionA, Vector2f positionB);
-/* */
-Vector2f cubicSplineDerivative(Vector2f positionA, Vector2f positionB);
-/* */
-void neighborSearchNN(Particle* particles, int numFluidParticles, int numParticles, float support);
-/* */
-void computeDensityAndPressure(Particle* particles, int numFluidParticles);
-/* */
-void updatePositions(Particle* particles, int numFluidParticles);
-/* */
-void computeAccelerations(Particle* particles, int numFluidParticles);
-/* */
-Vector2f nonPressureAcceleration(Particle p);
-/* */
-Vector2f pressureAcceleration(Particle p, int numFluidParticles);
+    int numFluidParticles;
+    int numBoundaryParticles = 380;
+    int numParticles = numFluidParticles + numBoundaryParticles;
+
+    // constructor
+    FluidSolver(int size)
+    {
+        numFluidParticles = size;
+        numParticles = numBoundaryParticles + size;
+    }
+
+    // destructor
+    ~FluidSolver()
+    {
+
+    }
+
+    // function declarations
+    /* */
+    void initializeFluidParticles(Particle* particles, Vector2f offset);
+    /* */
+    void initializeBoundaryParticles(Particle* particles);
+    /* */
+    float cubicSpline(Vector2f positionA, Vector2f positionB);
+    /* */
+    Vector2f cubicSplineDerivative(Vector2f positionA, Vector2f positionB);
+    /* */
+    void neighborSearchNN(Particle* particles, float support);
+    /* */
+    void computeDensityAndPressure(Particle* particles);
+    /* */
+    void updatePositions(Particle* particles);
+    /* */
+    void computeAccelerations(Particle* particles);
+    /* */
+    Vector2f nonPressureAcceleration(Particle p);
+    /* */
+    Vector2f pressureAcceleration(Particle p);
+};

@@ -8,12 +8,10 @@
 using namespace sf;
 using namespace std;
 
-const int NUM_FLUID_PARTICLES = 600;
-const int NUM_BOUNDARY_PARTICLES = 460;
-const int NUMBER_OF_PARTICLES = NUM_FLUID_PARTICLES + NUM_BOUNDARY_PARTICLES;
-
 const int WINDOW_WIDTH = 900;
 const int WINDOW_HEIGHT = 900;
+
+FluidSolver fluidSolver(600);
 
 // states
 bool stopSimulation = false;
@@ -23,7 +21,6 @@ static Vector2f particleCoordsToPixel(Vector2f position)
 {
     return Vector2f((position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (position.y + 1.f) * WINDOW_WIDTH / 2.f);
 }
-
 
 int main()
 {
@@ -40,29 +37,24 @@ int main()
     {
         cout << "font not loaded";
     }
-    Text text;
-    text.setFont(font);
-    text.setString("SHORTCUTS   >>   stop: X | restart: left mouse | zoom: mouse wheel | neighbors : N | (graph : D)");
-    text.setCharacterSize(15);
-    text.setFillColor(Color::Green);
+    Text instructions("SHORTCUTS   >>   stop: X | restart: left mouse | zoom: mouse wheel | neighbors : N | (graph : D)", font, 15);
+    instructions.setFillColor(Color::Green);
 
-    Text* particleLables = new Text[NUM_FLUID_PARTICLES]; // TODO: create extra text setup function?
-    for (size_t i = 0; i < NUM_FLUID_PARTICLES; i++)
+    Text* particleLables = new Text[fluidSolver.numFluidParticles];
+    for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
     {
-        particleLables[i].setFont(font);
-        particleLables[i].setCharacterSize(9);
+        particleLables[i] = Text("", font, 9);
         particleLables[i].setFillColor(Color::Green);
     }
-    Text cflNumber;
-    float maxVelocity = 0;
-    cflNumber.setFont(font);
-    cflNumber.setCharacterSize(15);
+
+    Text cflNumber("", font, 15);
     cflNumber.setFillColor(Color::Green);
     cflNumber.setPosition(Vector2f(0, 15));
+    float maxVelocity = 0;
 
     /* allocate memory for the particles and their shapes */
-    Particle* particles = new Particle[NUMBER_OF_PARTICLES];
-    CircleShape* drawingCircles = new CircleShape[NUMBER_OF_PARTICLES];
+    Particle* particles = new Particle[fluidSolver.numParticles];
+    CircleShape* drawingCircles = new CircleShape[fluidSolver.numParticles];
 
     if (!particles || !drawingCircles)
     {
@@ -70,10 +62,10 @@ int main()
     }
 
     /* initialize all fluid particles */
-    initializeFluidParticles(particles, NUM_FLUID_PARTICLES, Vector2f(4, 5));
+    fluidSolver.initializeFluidParticles(particles, Vector2f(4, 5));
 
     /* initialize all boundary particles */
-    initializeBoundaryParticles(particles, NUM_FLUID_PARTICLES, NUMBER_OF_PARTICLES);
+    fluidSolver.initializeBoundaryParticles(particles);
 
     /* simulation and rendering loop */
     while (window.isOpen())
@@ -107,7 +99,7 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Left)
                 {
                     Vector2i mousePos = Mouse::getPosition(window);
-                    initializeFluidParticles(particles, NUM_FLUID_PARTICLES, Vector2f((float)mousePos.x / WINDOW_WIDTH * 2 / H, ((float)WINDOW_HEIGHT - (float)mousePos.y) / WINDOW_WIDTH * 2 / H));
+                    fluidSolver.initializeFluidParticles(particles, Vector2f((float)mousePos.x / WINDOW_WIDTH * 2 / fluidSolver.H, ((float)WINDOW_HEIGHT - (float)mousePos.y) / WINDOW_WIDTH * 2 / fluidSolver.H));
                     maxVelocity = 0;
                 }
                 break;
@@ -131,10 +123,10 @@ int main()
         if (!stopSimulation)
         {
             /* Update (SPH Fluid Solver) */
-            neighborSearchNN(particles, NUM_FLUID_PARTICLES, NUMBER_OF_PARTICLES, 2);
-            computeDensityAndPressure(particles, NUM_FLUID_PARTICLES);
-            computeAccelerations(particles, NUM_FLUID_PARTICLES);
-            updatePositions(particles, NUM_FLUID_PARTICLES);
+            fluidSolver.neighborSearchNN(particles, 2);
+            fluidSolver.computeDensityAndPressure(particles);
+            fluidSolver.computeAccelerations(particles);
+            fluidSolver.updatePositions(particles);
         }
 
         /* Draw */
@@ -142,11 +134,11 @@ int main()
         window.setView(view);
         window.clear(); // don't draw on top of the previous frame
 
-        for (size_t i = 0; i < NUMBER_OF_PARTICLES; i++)
+        for (size_t i = 0; i < fluidSolver.numParticles; i++)
         {
-            drawingCircles[i].setRadius(H / 2.f * WINDOW_WIDTH / 2.f);    // h is defined as the "diameter"
+            drawingCircles[i].setRadius(fluidSolver.H / 2.f * WINDOW_WIDTH / 2.f);    // h is defined as the "diameter"
             drawingCircles[i].setPosition(Vector2f((particles[i].position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (particles[i].position.y + 1.f) * WINDOW_WIDTH / 2.f));   // the shapes to be drawn have to be updated independently, scale
-            if (i < NUM_FLUID_PARTICLES)
+            if (i < fluidSolver.numFluidParticles)
             {
                 drawingCircles[i].setFillColor(Color::Blue);
             }
@@ -156,7 +148,7 @@ int main()
         /* text */
         if (showNeighbors)
         {
-            for (size_t i = 0; i < NUM_FLUID_PARTICLES; i++)
+            for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 particleLables[i].setString(to_string(particles[i].neighbors.size()));
                 particleLables[i].setPosition(particleCoordsToPixel(particles[i].position));
@@ -164,14 +156,14 @@ int main()
             }
         }
 
-        for (size_t i = 0; i < NUM_FLUID_PARTICLES; i++)
+        for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
         {
             maxVelocity = max(maxVelocity, sqrt(particles[i].velocity.x * particles[i].velocity.x + particles[i].velocity.y * particles[i].velocity.y));
         }
 
-        cflNumber.setString("CFL: lambda >= " + to_string((TIME_STEP * maxVelocity) / H) + ", maxTimeStep: " + to_string(H / maxVelocity));
+        cflNumber.setString("CFL: lambda >= " + to_string((fluidSolver.TIME_STEP * maxVelocity) / fluidSolver.H) + ", maxTimeStep: " + to_string(fluidSolver.H / maxVelocity));
         window.draw(cflNumber);
-        window.draw(text);
+        window.draw(instructions);
 
         /* Display */
         window.display();

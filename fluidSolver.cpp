@@ -2,7 +2,7 @@
 #include <iostream>
 
 
-void initializeFluidParticles(Particle* particles, int numFluidParticles, Vector2f offset)
+void FluidSolver::initializeFluidParticles(Particle* particles, Vector2f offset)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -19,7 +19,7 @@ void initializeFluidParticles(Particle* particles, int numFluidParticles, Vector
     }
 }
 
-void initializeBoundaryParticles(Particle* particles, int numFluidParticles, int numParticles)
+void FluidSolver::initializeBoundaryParticles(Particle* particles)
 {
     for (size_t i = numFluidParticles; i < numParticles; i++)
     {
@@ -30,7 +30,7 @@ void initializeBoundaryParticles(Particle* particles, int numFluidParticles, int
         if (i - numFluidParticles < 120)
         {
             // right
-            temp1 = H * ((i - numFluidParticles) % 2 + 60) - 1.f;
+            temp1 = H * ((i - numFluidParticles) % 2 + 70) - 1.f;
             temp2 = (H * ((i - numFluidParticles) / 2 + 5) - 1.f);
         }
         else if (i - numFluidParticles < 240)
@@ -42,8 +42,8 @@ void initializeBoundaryParticles(Particle* particles, int numFluidParticles, int
         else
         {
             // bottom
-            temp1 = H * ((i - numFluidParticles - 240) % 110 + 2) - 1.f;
-            temp2 = (H * ((i - numFluidParticles - 240) / 110 + 3) - 1.f);
+            temp1 = H * ((i - numFluidParticles - 240) % 70 + 2) - 1.f;
+            temp2 = (H * ((i - numFluidParticles - 240) / 70 + 3) - 1.f);
         }
 
         particles[i].pressure = PRESSURE;
@@ -57,7 +57,7 @@ void initializeBoundaryParticles(Particle* particles, int numFluidParticles, int
     }
 }
 
-float cubicSpline(Vector2f positionA, Vector2f positionB) // just slightly too much * 0.999138886f for alpha
+float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) // just slightly too much * 0.999138886f for alpha
 {
     Vector2f temp = positionA - positionB;
     float distance = sqrt(temp.x * temp.x + temp.y * temp.y);
@@ -73,7 +73,7 @@ float cubicSpline(Vector2f positionA, Vector2f positionB) // just slightly too m
     return w;
 }
 
-Vector2f cubicSplineDerivative(Vector2f positionA, Vector2f positionB)
+Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positionB)
 {
     Vector2f temp = positionA - positionB;
     float distance = sqrt(temp.x * temp.x + temp.y * temp.y);
@@ -94,7 +94,7 @@ Vector2f cubicSplineDerivative(Vector2f positionA, Vector2f positionB)
     return w1;
 }
 
-void neighborSearchNN(Particle* particles, int numFluidParticles, int numParticles, float support)
+void FluidSolver::neighborSearchNN(Particle* particles, float support)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -111,7 +111,7 @@ void neighborSearchNN(Particle* particles, int numFluidParticles, int numParticl
     }
 }
 
-void computeDensityAndPressure(Particle* particles, int numFluidParticles)
+void FluidSolver::computeDensityAndPressure(Particle* particles)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -133,7 +133,7 @@ void computeDensityAndPressure(Particle* particles, int numFluidParticles)
     }
 }
 
-void updatePositions(Particle* particles, int numFluidParticles)
+void FluidSolver::updatePositions(Particle* particles)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -142,7 +142,7 @@ void updatePositions(Particle* particles, int numFluidParticles)
     }
 }
 
-Vector2f nonPressureAcceleration(Particle p)
+Vector2f FluidSolver::nonPressureAcceleration(Particle p)
 {
     Vector2f SPH = Vector2f(0.f, 0.f);
     for (size_t i = 0; i < p.neighbors.size(); i++)
@@ -156,7 +156,7 @@ Vector2f nonPressureAcceleration(Particle p)
     return 2.f * VISCOSITY * SPH + GRAVITY;
 }
 
-Vector2f pressureAcceleration(Particle p, int numFluidParticles)
+Vector2f FluidSolver::pressureAcceleration(Particle p)
 {
     Vector2f SPH = Vector2f(0.f, 0.f);
     for (size_t i = 0; i < p.neighbors.size(); i++)
@@ -176,12 +176,12 @@ Vector2f pressureAcceleration(Particle p, int numFluidParticles)
     return -SPH;
 }
 
-void computeAccelerations(Particle* particles, int numFluidParticles)
+void FluidSolver::computeAccelerations(Particle* particles)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
         Vector2f aNonP = nonPressureAcceleration(particles[i]);
-        Vector2f aP = pressureAcceleration(particles[i], numFluidParticles);
+        Vector2f aP = pressureAcceleration(particles[i]);
 
         particles[i].acceleration = aNonP + aP;
     }
