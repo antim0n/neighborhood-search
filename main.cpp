@@ -1,5 +1,6 @@
 #include <iostream>
 #include "fluidSolver.h"
+#include "button.h"
 
 using namespace sf;
 using namespace std;
@@ -46,6 +47,9 @@ int main()
     cflNumber.setPosition(Vector2f(0, 15));
     float maxVelocity = 0;
 
+    /* Buttons */
+    Button b1(Vector2i(50, 20), Vector2i(10, 50), Color::Green, Text("push", font, 15));
+
     /* allocate memory for the particle shapes */
     CircleShape* drawingCircles = new CircleShape[fluidSolver.numParticles];
     if (!fluidSolver.particles || !drawingCircles)
@@ -86,11 +90,18 @@ int main()
                 break;
 
             case Event::MouseButtonPressed:
-                if (event.mouseButton.button == sf::Mouse::Left)
+                if (event.mouseButton.button == sf::Mouse::Right)
                 {
                     Vector2i mousePos = Mouse::getPosition(window);
                     fluidSolver.initializeFluidParticles(Vector2f((float)mousePos.x / WINDOW_WIDTH * 2 / fluidSolver.H, ((float)WINDOW_HEIGHT - (float)mousePos.y) / WINDOW_WIDTH * 2 / fluidSolver.H));
                     maxVelocity = 0;
+                }
+                if (event.mouseButton.button == sf::Mouse::Left)
+                {
+                    if (b1.border.contains(Vector2i(Mouse::getPosition(window))))
+                    {
+                        cout << "pushed\n";
+                    }
                 }
                 break;
 
@@ -103,6 +114,7 @@ int main()
                 {
                     view.zoom(1.05f);
                 }
+                break;
 
             default:
                 break;
@@ -154,6 +166,10 @@ int main()
         cflNumber.setString("CFL: lambda >= " + to_string((fluidSolver.TIME_STEP * maxVelocity) / fluidSolver.H) + ", maxTimeStep: " + to_string(fluidSolver.H / maxVelocity));
         window.draw(cflNumber);
         window.draw(instructions);
+
+        /* buttons */
+        window.draw(b1.shape);
+        window.draw(b1.name);
 
         /* Display */
         window.display();
