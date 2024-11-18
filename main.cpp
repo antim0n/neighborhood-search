@@ -5,22 +5,31 @@
 using namespace sf;
 using namespace std;
 
-const int WINDOW_WIDTH = 900;
-const int WINDOW_HEIGHT = 900;
-
 FluidSolver fluidSolver(600);
 
-// states
-bool stopSimulation = false;
-bool showNeighbors = false;
-
-static Vector2f particleCoordsToPixel(Vector2f position)
+// index sort takes particles as input, sorts them and returns an integer array as output // maybe put into fluid solver?
+int* indexSort(Particle* particles, int numFluidParticles)
 {
-    return Vector2f((position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (position.y + 1.f) * WINDOW_WIDTH / 2.f);
+    int* cellIndices = new int[numFluidParticles];
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        // compute cell index with (k, l, m) and the bounding box (find x_min and y_min)
+        // increment cellIndices
+        // accumulate cellInices
+    }
+    // sort particles with respect to their index with the help of cellIndices
+    return cellIndices;
 }
 
 int main()
 {
+    const int WINDOW_WIDTH = 900;
+    const int WINDOW_HEIGHT = 900;
+
+    // states
+    bool stopSimulation = false;
+    bool showNeighbors = false;
+
     /* setup window */
     RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "FluidSolver", Style::Default);
     window.setFramerateLimit(60);   // prevent too much work for GPU
@@ -153,7 +162,8 @@ int main()
             for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 particleLables[i].setString(to_string(fluidSolver.particles[i].neighbors.size()));
-                particleLables[i].setPosition(particleCoordsToPixel(fluidSolver.particles[i].position));
+                Vector2f pixelCoord = Vector2f((fluidSolver.particles[i].position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (fluidSolver.particles[i].position.y + 1.f) * WINDOW_WIDTH / 2.f);
+                particleLables[i].setPosition(pixelCoord);
                 window.draw(particleLables[i]);
             }
         }
