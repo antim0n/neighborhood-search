@@ -16,6 +16,7 @@ void FluidSolver::initializeFluidParticles(Vector2f offset)
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
+        particles[i].cellIndex = -1;
         particles[i].density = REST_DENSITY;
         particles[i].pressure = PRESSURE;
         particles[i].mass = REST_DENSITY * H * H;
@@ -60,7 +61,7 @@ void FluidSolver::initializeBoundaryParticles()
         particles[i].velocity = Vector2f(0, 0);
         particles[i].acceleration = Vector2f(0, 0);
 
-        particles[i].index = i;
+        particles[i].cellIndex = i;
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
         particles[i].density = REST_DENSITY;
         particles[i].mass = REST_DENSITY * H * H;
@@ -172,7 +173,7 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
     for (size_t i = 0; i < p.neighbors.size(); i++)
     {
         float val = 0;
-        if (p.neighbors[i]->index >= numFluidParticles) // boundary handling (mirroring)
+        if (p.neighbors[i]->cellIndex >= numFluidParticles) // boundary handling (mirroring)
         {
             val = p.pressure / (p.density * p.density) + p.pressure / (p.density * p.density);
         }

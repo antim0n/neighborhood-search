@@ -13,6 +13,7 @@ const double PI = 3.14159265358979323846;
 struct Particle
 {
     int index;
+    int cellIndex;
     float density;  // in kg / m^3, 997 for water
     float pressure; // in N/m^2
     float mass;  // density * volume
@@ -38,7 +39,7 @@ public:
     int numBoundaryParticles = 380;
     int numParticles;
 
-    Particle* particles;
+    Particle* particles; // maybe change to vector
 
     // constructor
     FluidSolver(int size);

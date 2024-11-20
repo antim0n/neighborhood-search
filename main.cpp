@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include "fluidSolver.h"
 #include "button.h"
 
@@ -10,14 +11,68 @@ FluidSolver fluidSolver(600);
 // index sort takes particles as input, sorts them and returns an integer array as output // maybe put into fluid solver?
 int* indexSort(Particle* particles, int numFluidParticles)
 {
-    int* cellIndices = new int[numFluidParticles];
+    int* cellIndices = new int[numFluidParticles] { }; // change to vector, no memory allocations
+    float xMin = particles[0].position.x;
+    float yMin = particles[0].position.y;
+    float xMax = xMin;
+    // compute bounding box
     for (size_t i = 0; i < numFluidParticles; i++)
     {
-        // compute cell index with (k, l, m) and the bounding box (find x_min and y_min)
+        if (particles[i].position.x < xMin)
+        {
+            xMin = particles[i].position.x;
+        }
+        else if (particles[i].position.x > xMax)
+        {
+            xMax = particles[i].position.x;
+        }
+        if (particles[i].position.y < yMin)
+        {
+            xMin = particles[i].position.y;
+        }
+    }
+    int numCellsX = ceil((xMax - xMin) / (2 * fluidSolver.H));
+    // compute cell index with (k, l, m)
+    cout << fixed;
+    cout << setprecision(4);
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - xMin) / (2.f * fluidSolver.H)); // conversion fails sometimes on edge cases like 1.000 -> 0
+        int l = static_cast<int>((particles[i].position.y - yMin) / (2.f * fluidSolver.H));
+        particles[i].cellIndex = k + l * numCellsX;
         // increment cellIndices
-        // accumulate cellInices
+        cellIndices[particles[i].cellIndex] += 1;
+    }
+    // accumulate cellIndices
+    for (size_t i = 1; i < numFluidParticles; i++)
+    {
+        cellIndices[i] += cellIndices[i - 1];
     }
     // sort particles with respect to their index with the help of cellIndices
+    /*vector<Particle> temp;
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        cellIndices[particles[i].cellIndex] -= 1;
+        particles[i].index = cellIndices[particles[i].cellIndex];
+        temp.push_back(particles[i]);
+    }
+    for (auto it = begin(temp); it != end(temp); ++it) {
+        particles[it->index] = *it;
+    }*/
+    // insertion sort
+    for (size_t i = 1; i < numFluidParticles; i++)
+    {
+        Particle current = particles[i];
+        cellIndices[current.cellIndex] -= 1;
+        int j = i - 1;
+        while (j >= 0 && current.cellIndex > particles[j].cellIndex)
+        {
+            particles[j + 1] = particles[j];
+            j -= 1;
+        }
+        particles[j + 1] = current;
+    }
+
     return cellIndices;
 }
 
