@@ -41,11 +41,19 @@ public:
 
     Particle* particles; // maybe change to vector
 
+    // index sort
+    float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
+    vector<int> getParticleIndices; // change to vector, no memory allocations
+
     // constructor
     FluidSolver(int size);
     // destructor
     ~FluidSolver();
 
+    /* */
+    Vector2f particleToPixelCoord(Vector2f particlePos, int windowWidth, int windowHeight);
+    /* */
+    Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int windowHeight);
     /* */
     void initializeFluidParticles(Vector2f offset);
     /* */
@@ -66,4 +74,8 @@ public:
     Vector2f nonPressureAcceleration(Particle p);
     /* */
     Vector2f pressureAcceleration(Particle p);
+    /* */
+    void indexSortConstruction();
+    /* */
+    void indexSortQuery();
 };

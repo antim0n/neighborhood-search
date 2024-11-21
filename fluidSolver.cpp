@@ -1,15 +1,134 @@
 #include "fluidSolver.h"
+#include <iostream>
+
+// index sort takes particles as input, sorts them and returns an integer array as output // maybe put into fluid solver?
+void FluidSolver::indexSortConstruction()
+{
+    // xmin, xmax, ymin, ymax, cellsx, cellsy
+    boundingBox[0] = particles[0].position.x;
+    boundingBox[1] = particles[0].position.x;
+    boundingBox[2] = particles[0].position.y;
+    boundingBox[3] = particles[0].position.y;
+    // compute bounding box
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        if (particles[i].position.x < boundingBox[0])
+        {
+            boundingBox[0] = particles[i].position.x;
+        }
+        else if (particles[i].position.x > boundingBox[1])
+        {
+            boundingBox[1] = particles[i].position.x;
+        }
+        if (particles[i].position.y < boundingBox[2])
+        {
+            boundingBox[2] = particles[i].position.y;
+        }
+        else if (particles[i].position.y > boundingBox[3])
+        {
+            boundingBox[3] = particles[i].position.y;
+        }
+    }
+    boundingBox[4] = ceil((boundingBox[1] - boundingBox[0]) / (2.f * H));
+    boundingBox[5] = ceil((boundingBox[3] - boundingBox[2]) / (2.f * H));
+
+    // compute cell index with (k, l, m)
+    getParticleIndices.clear();
+    for (size_t i = 0; i < boundingBox[4] * boundingBox[5] + 1; i++)
+    {
+        getParticleIndices.push_back(0);
+    }
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * H)); // conversion fails sometimes on edge cases like 1.000 -> 0
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * H));
+        particles[i].cellIndex = k + l * boundingBox[4];
+        // increment cellIndices
+        getParticleIndices.at(particles[i].cellIndex) += 1;
+    }
+    // accumulate cellIndices
+    for (size_t i = 1; i < boundingBox[4] * boundingBox[5] + 1; i++)
+    {
+        getParticleIndices.at(i) += getParticleIndices.at(i - 1);
+    }
+    //// sort particles with respect to their index with the help of cellIndices
+    //// insertion sort
+    //getParticleIndices.at(0) -= 1;
+    //for (size_t i = 1; i < numFluidParticles; i++)
+    //{
+    //    Particle current = particles[i];
+    //    getParticleIndices.at(current.cellIndex) -= 1;
+    //    int j = i - 1;
+    //    while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+    //    {
+    //        particles[j + 1] = particles[j];
+    //        j -= 1;
+    //    }
+    //    particles[j + 1] = current;
+    //}
+}
+
+void FluidSolver::indexSortQuery()
+{
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        particles[i].neighbors.clear();
+        // compute cell indices (not with morton code yet)
+        int cellIndices[] = {particles[i].cellIndex,
+            particles[i].cellIndex + 1,
+            particles[i].cellIndex - 1,
+            particles[i].cellIndex + boundingBox[4],
+            particles[i].cellIndex - boundingBox[4],
+            particles[i].cellIndex + boundingBox[4] + 1,
+            particles[i].cellIndex + boundingBox[4] - 1,
+            particles[i].cellIndex - boundingBox[4] + 1,
+            particles[i].cellIndex - boundingBox[4] - 1
+        };
+
+        // check particles in all adjacent cells
+        for (size_t j = 0; j < 9; j++)
+        {
+            if (cellIndices[j] >= 0 && cellIndices[j] < boundingBox[4] * boundingBox[5]) // valid cell index
+            {
+                for (size_t k = getParticleIndices.at(cellIndices[j]); k < getParticleIndices.at(cellIndices[j] + 1); k++)
+                {
+                    Vector2f d = particles[i].position - particles[k].position;
+                    float distance = sqrt(d.x * d.x + d.y * d.y);
+                    if (distance < 2.f * H)
+                    {
+                        particles[i].neighbors.push_back(&particles[j]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+Vector2f FluidSolver::pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int windowHeight)
+{
+    return Vector2f(static_cast<float>(pixelPos.x) / (static_cast<float>(windowWidth) / 100.f),
+        static_cast<float>(windowHeight - pixelPos.y) / (static_cast<float>(windowWidth) / 100.f));
+}
+
+Vector2f FluidSolver::particleToPixelCoord(Vector2f particlePos, int windowWidth, int windowHeight)
+{
+    return Vector2f((particlePos.x) * (static_cast<float>(windowWidth) / 100.f),
+        static_cast<float>(windowHeight) - particlePos.y * (static_cast<float>(windowWidth) / 100.f));
+}
 
 FluidSolver::FluidSolver(int size)
 {
     numFluidParticles = size;
     numParticles = numBoundaryParticles + size;
     particles = new Particle[numBoundaryParticles + size];
+    boundingBox = new float[6];
+    getParticleIndices = vector<int>();
 }
 
 FluidSolver::~FluidSolver()
 {
     delete[] particles;
+    delete[] boundingBox;
 }
 
 void FluidSolver::initializeFluidParticles(Vector2f offset)

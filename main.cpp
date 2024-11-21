@@ -8,74 +8,6 @@ using namespace std;
 
 FluidSolver fluidSolver(600);
 
-// index sort takes particles as input, sorts them and returns an integer array as output // maybe put into fluid solver?
-int* indexSort(Particle* particles, int numFluidParticles)
-{
-    int* cellIndices = new int[numFluidParticles] { }; // change to vector, no memory allocations
-    float xMin = particles[0].position.x;
-    float yMin = particles[0].position.y;
-    float xMax = xMin;
-    // compute bounding box
-    for (size_t i = 0; i < numFluidParticles; i++)
-    {
-        if (particles[i].position.x < xMin)
-        {
-            xMin = particles[i].position.x;
-        }
-        else if (particles[i].position.x > xMax)
-        {
-            xMax = particles[i].position.x;
-        }
-        if (particles[i].position.y < yMin)
-        {
-            xMin = particles[i].position.y;
-        }
-    }
-    int numCellsX = ceil((xMax - xMin) / (2 * fluidSolver.H));
-    // compute cell index with (k, l, m)
-    cout << fixed;
-    cout << setprecision(4);
-    for (size_t i = 0; i < numFluidParticles; i++)
-    {
-        int k = static_cast<int>((particles[i].position.x - xMin) / (2.f * fluidSolver.H)); // conversion fails sometimes on edge cases like 1.000 -> 0
-        int l = static_cast<int>((particles[i].position.y - yMin) / (2.f * fluidSolver.H));
-        particles[i].cellIndex = k + l * numCellsX;
-        // increment cellIndices
-        cellIndices[particles[i].cellIndex] += 1;
-    }
-    // accumulate cellIndices
-    for (size_t i = 1; i < numFluidParticles; i++)
-    {
-        cellIndices[i] += cellIndices[i - 1];
-    }
-    // sort particles with respect to their index with the help of cellIndices
-    /*vector<Particle> temp;
-    for (size_t i = 0; i < numFluidParticles; i++)
-    {
-        cellIndices[particles[i].cellIndex] -= 1;
-        particles[i].index = cellIndices[particles[i].cellIndex];
-        temp.push_back(particles[i]);
-    }
-    for (auto it = begin(temp); it != end(temp); ++it) {
-        particles[it->index] = *it;
-    }*/
-    // insertion sort
-    for (size_t i = 1; i < numFluidParticles; i++)
-    {
-        Particle current = particles[i];
-        cellIndices[current.cellIndex] -= 1;
-        int j = i - 1;
-        while (j >= 0 && current.cellIndex > particles[j].cellIndex)
-        {
-            particles[j + 1] = particles[j];
-            j -= 1;
-        }
-        particles[j + 1] = current;
-    }
-
-    return cellIndices;
-}
-
 int main()
 {
     const int WINDOW_WIDTH = 900;
@@ -89,8 +21,14 @@ int main()
     RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "FluidSolver", Style::Default);
     window.setFramerateLimit(60);   // prevent too much work for GPU
     window.setPosition(Vector2i(10, 10));
-
     View view = window.getDefaultView();
+
+    // fps calculation
+    Clock clock;
+    Time previousTime = clock.getElapsedTime();
+    Time currentTime;
+    int fps = 60;
+    int counter = 0;
 
     /* load font and prepare text */
     Font font;
@@ -191,6 +129,8 @@ int main()
         if (!stopSimulation)
         {
             /* Update (SPH Fluid Solver) */
+            fluidSolver.indexSortConstruction();
+            // fluidSolver.indexSortQuery();
             fluidSolver.neighborSearchNN(2);
             fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
@@ -214,6 +154,40 @@ int main()
             window.draw(drawingCircles[i]);
         }
 
+        // grid
+        for (size_t i = 0; i < fluidSolver.boundingBox[4] + 1; i++) // vertical
+        {
+            Vertex line[] = {
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0] + 2.f * fluidSolver.H * i, fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0] + 2.f * fluidSolver.H * i, fluidSolver.boundingBox[2] + 2.f * fluidSolver.H * (fluidSolver.boundingBox[5])), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
+            window.draw(line, 2, Lines);
+        }
+        for (size_t i = 0; i < fluidSolver.boundingBox[5] + 1; i++) // horizontal
+        {
+            Vertex line[] = {
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0] + 2.f * fluidSolver.H * fluidSolver.boundingBox[4], fluidSolver.boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
+            window.draw(line, 2, Lines);
+        }
+
+        // bounding box
+        Vertex line1[] = {
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+        Vertex line2[] = {
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+        Vertex line3[] = {
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+        Vertex line4[] = {
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+        window.draw(line1, 2, Lines);
+        window.draw(line2, 2, Lines);
+        window.draw(line3, 2, Lines);
+        window.draw(line4, 2, Lines);
+
         /* text */
         if (showNeighbors)
         {
@@ -227,12 +201,22 @@ int main()
             }
         }
 
+        // fps calculation
+        currentTime = clock.getElapsedTime();
+        counter += 1;
+        if (counter > 20)
+        {
+            fps = static_cast<int>(1.0f / (currentTime.asSeconds() - previousTime.asSeconds())); // is capped at 60
+            counter = 0;
+        }
+        previousTime = currentTime;
+
         for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
         {
             maxVelocity = max(maxVelocity, sqrt(fluidSolver.particles[i].velocity.x * fluidSolver.particles[i].velocity.x + fluidSolver.particles[i].velocity.y * fluidSolver.particles[i].velocity.y));
         }
 
-        cflNumber.setString("CFL: lambda >= " + to_string((fluidSolver.TIME_STEP * maxVelocity) / fluidSolver.H) + ", maxTimeStep: " + to_string(fluidSolver.H / maxVelocity));
+        cflNumber.setString("CFL: lambda >= " + to_string((fluidSolver.TIME_STEP * maxVelocity) / fluidSolver.H) + ", maxTimeStep: " + to_string(fluidSolver.H / maxVelocity) + ", fps: " + to_string(fps));
         window.draw(cflNumber);
         window.draw(instructions);
 
