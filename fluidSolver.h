@@ -26,11 +26,11 @@ struct Particle
 class FluidSolver // add access
 {
 public:
-    const float STIFFNESS = 300.f; //
-    const float VISCOSITY = 0.02f; //
-    const float TIME_STEP = 0.0012f; //
+    const float STIFFNESS = 14400.f; //
+    const float VISCOSITY = 7.95f; //
+    const float TIME_STEP = 0.0081f; //
 
-    const float H = 0.025f;
+    const float H = 1.2f;
     const float REST_DENSITY = 1.2f;
     const float PRESSURE = 0.f;
     const Vector2f GRAVITY = Vector2f(0.f, -9.81f);

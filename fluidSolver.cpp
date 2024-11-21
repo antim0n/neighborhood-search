@@ -23,8 +23,8 @@ void FluidSolver::initializeFluidParticles(Vector2f offset)
         particles[i].velocity = Vector2f(0, 0);
         particles[i].acceleration = Vector2f(0, 0);
 
-        float temp1 = H * (i % 25 + offset.x) - 1.f;
-        float temp2 = H * (i / 25 + offset.y) - 1.f;
+        float temp1 = H * (i % 25) + offset.x; // use a 100x100 global space
+        float temp2 = H * (i / 25) + offset.y;
         particles[i].index = i;
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
     }
@@ -41,27 +41,28 @@ void FluidSolver::initializeBoundaryParticles()
         if (i - numFluidParticles < 120)
         {
             // right
-            temp1 = H * ((i - numFluidParticles) % 2 + 70) - 1.f;
-            temp2 = (H * ((i - numFluidParticles) / 2 + 5) - 1.f);
+            temp1 = H * ((i - numFluidParticles) % 2 + 70);
+            temp2 = (H * ((i - numFluidParticles) / 2 + 5));
         }
         else if (i - numFluidParticles < 240)
         {
             // left
-            temp1 = H * ((i - numFluidParticles - 120) % 2 + 2) - 1.f;
-            temp2 = (H * ((i - numFluidParticles - 120) / 2 + 5) - 1.f);
+            temp1 = H * ((i - numFluidParticles - 120) % 2 + 2);
+            temp2 = (H * ((i - numFluidParticles - 120) / 2 + 5));
         }
         else
         {
             // bottom
-            temp1 = H * ((i - numFluidParticles - 240) % 70 + 2) - 1.f;
-            temp2 = (H * ((i - numFluidParticles - 240) / 70 + 3) - 1.f);
+            temp1 = H * ((i - numFluidParticles - 240) % 70 + 2);
+            temp2 = (H * ((i - numFluidParticles - 240) / 70 + 3));
         }
 
         particles[i].pressure = PRESSURE;
         particles[i].velocity = Vector2f(0, 0);
         particles[i].acceleration = Vector2f(0, 0);
 
-        particles[i].cellIndex = i;
+        particles[i].index = i;
+        particles[i].cellIndex = -1;
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
         particles[i].density = REST_DENSITY;
         particles[i].mass = REST_DENSITY * H * H;

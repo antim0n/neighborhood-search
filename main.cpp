@@ -122,7 +122,7 @@ int main()
     }
 
     /* initialize all particles */
-    fluidSolver.initializeFluidParticles(Vector2f(4, 5));
+    fluidSolver.initializeFluidParticles(Vector2f(4.f * fluidSolver.H, 5.f * fluidSolver.H));
     fluidSolver.initializeBoundaryParticles();
 
     /* simulation and rendering loop */
@@ -157,7 +157,9 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Right)
                 {
                     Vector2i mousePos = Mouse::getPosition(window);
-                    fluidSolver.initializeFluidParticles(Vector2f((float)mousePos.x / WINDOW_WIDTH * 2 / fluidSolver.H, ((float)WINDOW_HEIGHT - (float)mousePos.y) / WINDOW_WIDTH * 2 / fluidSolver.H));
+                    Vector2f newOffset = Vector2f(static_cast<float>(mousePos.x) / (static_cast<float>(WINDOW_HEIGHT) / 100.f),
+                        static_cast<float>(WINDOW_HEIGHT - mousePos.y) / (static_cast<float>(WINDOW_HEIGHT) / 100.f)); // pixel to particle
+                    fluidSolver.initializeFluidParticles(newOffset);
                     maxVelocity = 0;
                 }
                 if (event.mouseButton.button == sf::Mouse::Left)
@@ -202,8 +204,9 @@ int main()
 
         for (size_t i = 0; i < fluidSolver.numParticles; i++)
         {
-            drawingCircles[i].setRadius(fluidSolver.H / 2.f * WINDOW_WIDTH / 2.f);    // h is defined as the "diameter"
-            drawingCircles[i].setPosition(Vector2f((fluidSolver.particles[i].position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (fluidSolver.particles[i].position.y + 1.f) * WINDOW_WIDTH / 2.f));   // the shapes to be drawn have to be updated independently, scale
+            drawingCircles[i].setRadius((fluidSolver.H / 2.f) * (static_cast<float>(WINDOW_HEIGHT) / 100.f));    // h is defined as the "diameter"
+            drawingCircles[i].setPosition(Vector2f((fluidSolver.particles[i].position.x) * (static_cast<float>(WINDOW_WIDTH) / 100.f),
+                static_cast<float>(WINDOW_HEIGHT) - fluidSolver.particles[i].position.y * (static_cast<float>(WINDOW_WIDTH) / 100.f)));   // the shapes to be drawn have to be updated independently, scale
             if (i < fluidSolver.numFluidParticles)
             {
                 drawingCircles[i].setFillColor(Color::Blue);
@@ -217,7 +220,8 @@ int main()
             for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 particleLables[i].setString(to_string(fluidSolver.particles[i].neighbors.size()));
-                Vector2f pixelCoord = Vector2f((fluidSolver.particles[i].position.x + 1.f) * WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - (fluidSolver.particles[i].position.y + 1.f) * WINDOW_WIDTH / 2.f);
+                Vector2f pixelCoord = Vector2f((fluidSolver.particles[i].position.x) * (static_cast<float>(WINDOW_WIDTH) / 100.f),
+                    static_cast<float>(WINDOW_HEIGHT) - fluidSolver.particles[i].position.y * (static_cast<float>(WINDOW_WIDTH) / 100.f)); // particle to pixel
                 particleLables[i].setPosition(pixelCoord);
                 window.draw(particleLables[i]);
             }
