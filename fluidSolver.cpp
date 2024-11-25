@@ -51,24 +51,24 @@ void FluidSolver::indexSortConstruction()
     {
         getParticleIndices.at(i) += getParticleIndices.at(i - 1);
     }
-    //// sort particles with respect to their index with the help of cellIndices
-    //// insertion sort
-    //getParticleIndices.at(0) -= 1;
-    //for (size_t i = 1; i < numFluidParticles; i++)
-    //{
-    //    Particle current = particles[i];
-    //    getParticleIndices.at(current.cellIndex) -= 1;
-    //    int j = i - 1;
-    //    while (j >= 0 && current.cellIndex < particles[j].cellIndex)
-    //    {
-    //        particles[j + 1] = particles[j];
-    //        j -= 1;
-    //    }
-    //    particles[j + 1] = current;
-    //}
+    // sort particles with respect to their index with the help of cellIndices
+    // insertion sort
+    getParticleIndices.at(0) -= 1;
+    for (size_t i = 1; i < numFluidParticles; i++)
+    {
+        Particle current = particles[i];
+        getParticleIndices.at(current.cellIndex) -= 1;
+        int j = i - 1;
+        while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+        {
+            particles[j + 1] = particles[j];
+            j -= 1;
+        }
+        particles[j + 1] = current;
+    }
 }
 
-void FluidSolver::indexSortQuery()
+void FluidSolver::indexSortQuery() // definitly finds the wrong neighbors, no boundary particles included, some particles are counted multiple times
 {
     for (size_t i = 0; i < numFluidParticles; i++)
     {
@@ -96,7 +96,7 @@ void FluidSolver::indexSortQuery()
                     float distance = sqrt(d.x * d.x + d.y * d.y);
                     if (distance < 2.f * H)
                     {
-                        particles[i].neighbors.push_back(&particles[j]);
+                        particles[i].neighbors.push_back(&particles[k]);
                     }
                 }
             }
@@ -188,7 +188,7 @@ void FluidSolver::initializeBoundaryParticles()
     }
 }
 
-float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) // just slightly too much * 0.999138886f for alpha
+float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) const // just slightly too much * 0.999138886f for alpha
 {
     Vector2f temp = positionA - positionB;
     float distance = sqrt(temp.x * temp.x + temp.y * temp.y);

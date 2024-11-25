@@ -67,7 +67,7 @@ public:
     /* */
     void computeAccelerations();
     /* */
-    float cubicSpline(Vector2f positionA, Vector2f positionB);
+    float cubicSpline(Vector2f positionA, Vector2f positionB) const;
     /* */
     Vector2f cubicSplineDerivative(Vector2f positionA, Vector2f positionB);
     /* */

@@ -130,11 +130,29 @@ int main()
         {
             /* Update (SPH Fluid Solver) */
             fluidSolver.indexSortConstruction();
-            // fluidSolver.indexSortQuery();
+            fluidSolver.indexSortQuery();
+            /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
+            {
+                for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
+                {
+                    cout << fluidSolver.particles[i].neighbors[j]->index << " ";
+                }
+                cout << endl;
+            }
+            cout << endl;
             fluidSolver.neighborSearchNN(2);
+            for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
+            {
+                for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
+                {
+                    cout << fluidSolver.particles[i].neighbors[j]->index << " ";
+                }
+                cout << endl;
+            }*/
             fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
             fluidSolver.updatePositions();
+            //stopSimulation = true;
         }
 
         /* Draw */
