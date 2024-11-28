@@ -1,10 +1,13 @@
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
 #include <iostream>
-#include <iomanip>
 #include "fluidSolver.h"
+#include "neighborSearch.h"
 #include "button.h"
 
-using namespace sf;
 using namespace std;
+using namespace sf;
 
 FluidSolver fluidSolver(600);
 
@@ -125,12 +128,11 @@ int main()
             }
         }
 
-
         if (!stopSimulation)
         {
             /* Update (SPH Fluid Solver) */
-            fluidSolver.indexSortConstruction();
-            fluidSolver.indexSortQuery();
+            indexSortConstruction(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            indexSortQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
@@ -139,9 +141,9 @@ int main()
                 }
                 cout << endl;
             }
-            cout << endl;
-            fluidSolver.neighborSearchNN(2);
-            for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
+            cout << endl;*/
+            // fluidSolver.neighborSearchNN(2);
+            /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
                 {
@@ -173,34 +175,34 @@ int main()
         }
 
         // grid
-        for (size_t i = 0; i < fluidSolver.boundingBox[4] + 1; i++) // vertical
+        for (size_t i = 0; i < boundingBox[4] + 1; i++) // vertical
         {
             Vertex line[] = {
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0] + 2.f * fluidSolver.H * i, fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0] + 2.f * fluidSolver.H * i, fluidSolver.boundingBox[2] + 2.f * fluidSolver.H * (fluidSolver.boundingBox[5])), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * i, boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * i, boundingBox[2] + 2.f * fluidSolver.H * (boundingBox[5])), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
             window.draw(line, 2, Lines);
         }
-        for (size_t i = 0; i < fluidSolver.boundingBox[5] + 1; i++) // horizontal
+        for (size_t i = 0; i < boundingBox[5] + 1; i++) // horizontal
         {
             Vertex line[] = {
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0] + 2.f * fluidSolver.H * fluidSolver.boundingBox[4], fluidSolver.boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * boundingBox[4], boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
             window.draw(line, 2, Lines);
         }
 
         // bounding box
         Vertex line1[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
         Vertex line2[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
         Vertex line3[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[0], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
         Vertex line4[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(fluidSolver.boundingBox[1], fluidSolver.boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
         window.draw(line1, 2, Lines);
         window.draw(line2, 2, Lines);
         window.draw(line3, 2, Lines);
@@ -249,6 +251,7 @@ int main()
     /* deallocate memory */
     delete[] drawingCircles;
     delete[] particleLables;
+    delete[] boundingBox;
 
     return EXIT_SUCCESS;
 }

@@ -136,10 +136,13 @@
     <ClCompile Include="button.cpp" />
     <ClCompile Include="fluidSolver.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="neighborSearch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="button.h" />
     <ClInclude Include="fluidSolver.h" />
+    <ClInclude Include="neighborSearch.h" />
+    <ClInclude Include="particle.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

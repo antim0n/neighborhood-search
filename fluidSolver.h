@@ -3,25 +3,12 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
+#include "particle.h"
 
-using namespace sf;
 using namespace std;
+using namespace sf;
 
 const double PI = 3.14159265358979323846;
-
-/* holds all important information needed at a particle */
-struct Particle
-{
-    int index;
-    int cellIndex;
-    float density;  // in kg / m^3, 997 for water
-    float pressure; // in N/m^2
-    float mass;  // density * volume
-    Vector2f position;
-    Vector2f velocity;
-    Vector2f acceleration;
-    vector<Particle*> neighbors;    // pointers to all current neighbors
-};
 
 class FluidSolver // add access
 {
@@ -36,14 +23,10 @@ public:
     const Vector2f GRAVITY = Vector2f(0.f, -9.81f);
 
     int numFluidParticles;
-    int numBoundaryParticles = 380;
+    int numBoundaryParticles = 400;
     int numParticles;
 
     Particle* particles; // maybe change to vector
-
-    // index sort
-    float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
-    vector<int> getParticleIndices; // change to vector, no memory allocations
 
     // constructor
     FluidSolver(int size);
@@ -74,8 +57,4 @@ public:
     Vector2f nonPressureAcceleration(Particle p);
     /* */
     Vector2f pressureAcceleration(Particle p);
-    /* */
-    void indexSortConstruction();
-    /* */
-    void indexSortQuery();
 };
