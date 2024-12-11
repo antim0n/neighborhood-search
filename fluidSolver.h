@@ -23,7 +23,7 @@ public:
     const Vector2f GRAVITY = Vector2f(0.f, -9.81f);
 
     int numFluidParticles;
-    int numBoundaryParticles = 400;
+    int numBoundaryParticles = 0; // 400
     int numParticles;
 
     Particle* particles; // maybe change to vector

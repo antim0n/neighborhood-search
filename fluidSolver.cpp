@@ -1,7 +1,7 @@
 #include "fluidSolver.h"
 #include <iostream>
 
-Vector2f FluidSolver::pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int windowHeight)
+Vector2f FluidSolver::pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int windowHeight) // TODO: remove from fluidSolver class?
 {
     return Vector2f(static_cast<float>(pixelPos.x) / (static_cast<float>(windowWidth) / 100.f),
         static_cast<float>(windowHeight - pixelPos.y) / (static_cast<float>(windowWidth) / 100.f));
@@ -27,17 +27,19 @@ FluidSolver::~FluidSolver()
 
 void FluidSolver::initializeFluidParticles(Vector2f offset)
 {
+    int size = static_cast<int>(sqrt(numFluidParticles));
     for (size_t i = 0; i < numFluidParticles; i++)
     {
         particles[i].cellIndex = -1;
+        particles[i].isFluid = true;
         particles[i].density = REST_DENSITY;
         particles[i].pressure = PRESSURE;
         particles[i].mass = REST_DENSITY * H * H;
         particles[i].velocity = Vector2f(0, 0);
         particles[i].acceleration = Vector2f(0, 0);
 
-        float temp1 = H * (i % 25) + offset.x; // use a 100x100 global space
-        float temp2 = H * (i / 25) + offset.y;
+        float temp1 = H * (i % size) + offset.x; // use a 100x100 global space
+        float temp2 = H * (i / size) + offset.y;
         particles[i].index = i;
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
     }
@@ -76,6 +78,7 @@ void FluidSolver::initializeBoundaryParticles()
 
         particles[i].index = i;
         particles[i].cellIndex = -1;
+        particles[i].isFluid = false;
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
         particles[i].density = REST_DENSITY;
         particles[i].mass = REST_DENSITY * H * H;
@@ -121,16 +124,19 @@ Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positio
 
 void FluidSolver::neighborSearchNN(float support)
 {
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
-        particles[i].neighbors.clear();
-        for (size_t j = 0; j < numParticles; j++)
+        if (particles[i].isFluid)
         {
-            Vector2f d = particles[i].position - particles[j].position;
-            float distance = sqrt(d.x * d.x + d.y * d.y);
-            if (distance < support * H)
+            particles[i].neighbors.clear();
+            for (size_t j = 0; j < numParticles; j++)
             {
-                particles[i].neighbors.push_back(&particles[j]);
+                Vector2f d = particles[i].position - particles[j].position;
+                float distance = sqrt(d.x * d.x + d.y * d.y);
+                if (distance < support * H)
+                {
+                    particles[i].neighbors.push_back(&particles[j]);
+                }
             }
         }
     }
@@ -138,32 +144,38 @@ void FluidSolver::neighborSearchNN(float support)
 
 void FluidSolver::computeDensityAndPressure()
 {
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
-        float temp = 0;
-        if (particles[i].neighbors.size() == 1)
+        if (particles[i].isFluid)
         {
-            temp = REST_DENSITY;
-        }
-        else
-        {
-            // sum over all neighbors
-            for (size_t j = 0; j < particles[i].neighbors.size(); j++)
+            float temp = 0;
+            if (particles[i].neighbors.size() == 1)
             {
-                temp += particles[i].neighbors[j]->mass * cubicSpline(particles[i].position, particles[i].neighbors[j]->position);
+                temp = REST_DENSITY;
             }
+            else
+            {
+                // sum over all neighbors
+                for (size_t j = 0; j < particles[i].neighbors.size(); j++)
+                {
+                    temp += particles[i].neighbors[j]->mass * cubicSpline(particles[i].position, particles[i].neighbors[j]->position);
+                }
+            }
+            particles[i].density = temp;
+            particles[i].pressure = STIFFNESS * (max((temp / REST_DENSITY) - 1.f, 0.f)); // problem with dividing by 0
         }
-        particles[i].density = temp;
-        particles[i].pressure = STIFFNESS * (max((temp / REST_DENSITY) - 1.f, 0.f)); // problem with dividing by 0
     }
 }
 
 void FluidSolver::updatePositions()
 {
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
-        particles[i].velocity += TIME_STEP * particles[i].acceleration;
-        particles[i].position += TIME_STEP * particles[i].velocity; // updated velocity (semi-implicit euler)
+        if (particles[i].isFluid)
+        {
+            particles[i].velocity += TIME_STEP * particles[i].acceleration;
+            particles[i].position += TIME_STEP * particles[i].velocity; // updated velocity (semi-implicit euler)
+        }
     }
 }
 
@@ -187,7 +199,7 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
     for (size_t i = 0; i < p.neighbors.size(); i++)
     {
         float val = 0;
-        if (p.neighbors[i]->cellIndex >= numFluidParticles) // boundary handling (mirroring)
+        if (!p.neighbors[i]->isFluid) // boundary handling (mirroring)
         {
             val = p.pressure / (p.density * p.density) + p.pressure / (p.density * p.density);
         }
@@ -203,11 +215,14 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
 
 void FluidSolver::computeAccelerations()
 {
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
-        Vector2f aNonP = nonPressureAcceleration(particles[i]);
-        Vector2f aP = pressureAcceleration(particles[i]);
+        if (particles[i].isFluid)
+        {
+            Vector2f aNonP = nonPressureAcceleration(particles[i]);
+            Vector2f aP = pressureAcceleration(particles[i]);
 
-        particles[i].acceleration = aNonP + aP;
+            particles[i].acceleration = aNonP + aP;
+        }
     }
 }

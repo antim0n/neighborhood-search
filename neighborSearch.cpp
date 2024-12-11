@@ -1,4 +1,5 @@
 #include "neighborSearch.h"
+#include <iostream>
 
 float* boundingBox = new float[6];
 vector<int> getParticleIndices = vector<int>();
@@ -15,16 +16,16 @@ void gridQuery()
 
 }
 
-// index sort takes particles as input, sorts them and returns an integer array as output // maybe put into fluid solver?
-void indexSortConstruction(Particle* particles, int numFluidParticles, float h) // mayve pass bounding box etc as parameters?
+// index sort takes particles as input, sorts them and returns an integer array as output
+void indexSortConstruction(Particle* particles, int numParticles, float h)
 {
     // xmin, xmax, ymin, ymax, cellsx, cellsy
-    boundingBox[0] = particles[0].position.x;
-    boundingBox[1] = particles[0].position.x;
-    boundingBox[2] = particles[0].position.y;
-    boundingBox[3] = particles[0].position.y;
+    boundingBox[0] = particles[0].position.x; // min
+    boundingBox[1] = particles[0].position.x; // max
+    boundingBox[2] = particles[0].position.y; // min
+    boundingBox[3] = particles[0].position.y; // max
     // compute bounding box
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
         if (particles[i].position.x < boundingBox[0])
         {
@@ -43,6 +44,11 @@ void indexSortConstruction(Particle* particles, int numFluidParticles, float h) 
             boundingBox[3] = particles[i].position.y;
         }
     }
+    boundingBox[0] -= 0.4 * h; // make grid slightly bigger for edge cases
+    boundingBox[1] += 0.4 * h;
+    boundingBox[2] -= 0.4 * h;
+    boundingBox[3] += 0.4 * h;
+
     boundingBox[4] = ceil((boundingBox[1] - boundingBox[0]) / (2.f * h));
     boundingBox[5] = ceil((boundingBox[3] - boundingBox[2]) / (2.f * h));
 
@@ -52,7 +58,7 @@ void indexSortConstruction(Particle* particles, int numFluidParticles, float h) 
     {
         getParticleIndices.push_back(0);
     }
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
         int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
         int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * h));
@@ -68,7 +74,7 @@ void indexSortConstruction(Particle* particles, int numFluidParticles, float h) 
     // sort particles with respect to their index with the help of cellIndices
     // insertion sort
     getParticleIndices.at(0) -= 1;
-    for (size_t i = 1; i < numFluidParticles; i++)
+    for (size_t i = 1; i < numParticles; i++)
     {
         Particle current = particles[i];
         getParticleIndices.at(current.cellIndex) -= 1;
@@ -82,35 +88,38 @@ void indexSortConstruction(Particle* particles, int numFluidParticles, float h) 
     }
 }
 
-void indexSortQuery(Particle* particles, int numFluidParticles, float h) // no boundary particles included, too many adjacent cells at times
+void indexSortQuery(Particle* particles, int numParticles, float h) // no boundary particles included, too many adjacent cells at times, maybe check with klm
 {
-    for (size_t i = 0; i < numFluidParticles; i++)
+    for (size_t i = 0; i < numParticles; i++)
     {
-        particles[i].neighbors.clear();
-        // compute cell indices
-        int cellIndices[] = { particles[i].cellIndex,
-            particles[i].cellIndex + 1,
-            particles[i].cellIndex - 1,
-            particles[i].cellIndex + boundingBox[4],
-            particles[i].cellIndex - boundingBox[4],
-            particles[i].cellIndex + boundingBox[4] + 1,
-            particles[i].cellIndex + boundingBox[4] - 1,
-            particles[i].cellIndex - boundingBox[4] + 1,
-            particles[i].cellIndex - boundingBox[4] - 1
-        };
-
-        // check particles in all adjacent cells
-        for (size_t j = 0; j < 9; j++)
+        if (particles[i].isFluid)
         {
-            if (cellIndices[j] >= 0 && cellIndices[j] < boundingBox[4] * boundingBox[5]) // valid cell index
+            particles[i].neighbors.clear();
+            // compute cell indices
+            int cellIndices[] = { particles[i].cellIndex,
+                particles[i].cellIndex + 1,
+                particles[i].cellIndex - 1,
+                particles[i].cellIndex + boundingBox[4],
+                particles[i].cellIndex - boundingBox[4],
+                particles[i].cellIndex + boundingBox[4] + 1,
+                particles[i].cellIndex + boundingBox[4] - 1,
+                particles[i].cellIndex - boundingBox[4] + 1,
+                particles[i].cellIndex - boundingBox[4] - 1
+            };
+
+            // check particles in all adjacent cells
+            for (size_t j = 0; j < 9; j++)
             {
-                for (size_t k = getParticleIndices.at(cellIndices[j]); k < getParticleIndices.at(cellIndices[j] + 1); k++)
+                if (cellIndices[j] >= 0 && cellIndices[j] < boundingBox[4] * boundingBox[5]) // valid cell index
                 {
-                    Vector2f d = particles[i].position - particles[k].position;
-                    float distance = sqrt(d.x * d.x + d.y * d.y);
-                    if (distance < 2.f * h)
+                    for (size_t k = getParticleIndices.at(cellIndices[j]); k < getParticleIndices.at(cellIndices[j] + 1); k++)
                     {
-                        particles[i].neighbors.push_back(&particles[k]);
+                        Vector2f d = particles[i].position - particles[k].position;
+                        float distance = sqrt(d.x * d.x + d.y * d.y);
+                        if (distance < 2.0f * h)
+                        {
+                            particles[i].neighbors.push_back(&particles[k]);
+                        }
                     }
                 }
             }

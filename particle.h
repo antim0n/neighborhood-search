@@ -12,6 +12,7 @@ struct Particle
 {
     int index;
     int cellIndex;
+    bool isFluid;
     float density;  // in kg / m^3, 997 for water
     float pressure; // in N/m^2
     float mass;  // density * volume

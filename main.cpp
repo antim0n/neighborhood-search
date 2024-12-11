@@ -2,14 +2,16 @@
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
 #include <iostream>
+#include <chrono>
 #include "fluidSolver.h"
 #include "neighborSearch.h"
 #include "button.h"
 
 using namespace std;
+using namespace std::chrono;
 using namespace sf;
 
-FluidSolver fluidSolver(600);
+FluidSolver fluidSolver(100000);
 
 int main()
 {
@@ -41,8 +43,8 @@ int main()
     }
     Text instructions("SHORTCUTS   >>   stop: X | restart: left mouse | zoom: mouse wheel | neighbors : N | (graph : D)", font, 15);
     instructions.setFillColor(Color::Green);
-    Text* particleLables = new Text[fluidSolver.numFluidParticles];
-    for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
+    Text* particleLables = new Text[fluidSolver.numParticles];
+    for (size_t i = 0; i < fluidSolver.numParticles; i++)
     {
         particleLables[i] = Text("", font, 9);
         particleLables[i].setFillColor(Color::Green);
@@ -131,8 +133,12 @@ int main()
         if (!stopSimulation)
         {
             /* Update (SPH Fluid Solver) */
-            indexSortConstruction(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            indexSortQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            // runtime measurement
+            auto start = high_resolution_clock::now();
+
+            indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
@@ -142,7 +148,9 @@ int main()
                 cout << endl;
             }
             cout << endl;*/
+
             // fluidSolver.neighborSearchNN(2);
+
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
@@ -151,10 +159,16 @@ int main()
                 }
                 cout << endl;
             }*/
-            fluidSolver.computeDensityAndPressure();
+
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<chrono::milliseconds>(stop - start);
+            cout << duration.count() << endl;
+            cout << chrono::duration<double>(duration).count() << endl;
+
+            /*fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
-            fluidSolver.updatePositions();
-            //stopSimulation = true;
+            fluidSolver.updatePositions();*/
+            // stopSimulation = true;
         }
 
         /* Draw */
@@ -167,9 +181,13 @@ int main()
             drawingCircles[i].setRadius((fluidSolver.H / 2.f) * (static_cast<float>(WINDOW_HEIGHT) / 100.f));    // h is defined as the "diameter"
             drawingCircles[i].setPosition(Vector2f((fluidSolver.particles[i].position.x) * (static_cast<float>(WINDOW_WIDTH) / 100.f),
                 static_cast<float>(WINDOW_HEIGHT) - fluidSolver.particles[i].position.y * (static_cast<float>(WINDOW_WIDTH) / 100.f)));   // the shapes to be drawn have to be updated independently, scale
-            if (i < fluidSolver.numFluidParticles)
+            if (fluidSolver.particles[i].isFluid)
             {
                 drawingCircles[i].setFillColor(Color::Blue);
+            }
+            else
+            {
+                drawingCircles[i].setFillColor(Color::White);
             }
             window.draw(drawingCircles[i]);
         }
@@ -211,13 +229,16 @@ int main()
         /* text */
         if (showNeighbors)
         {
-            for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
+            for (size_t i = 0; i < fluidSolver.numParticles; i++)
             {
-                particleLables[i].setString(to_string(fluidSolver.particles[i].neighbors.size()));
-                Vector2f pixelCoord = Vector2f((fluidSolver.particles[i].position.x) * (static_cast<float>(WINDOW_WIDTH) / 100.f),
-                    static_cast<float>(WINDOW_HEIGHT) - fluidSolver.particles[i].position.y * (static_cast<float>(WINDOW_WIDTH) / 100.f)); // particle to pixel
-                particleLables[i].setPosition(pixelCoord);
-                window.draw(particleLables[i]);
+                if (fluidSolver.particles[i].isFluid)
+                {
+                    particleLables[i].setString(to_string(fluidSolver.particles[i].neighbors.size()));
+                    Vector2f pixelCoord = Vector2f((fluidSolver.particles[i].position.x) * (static_cast<float>(WINDOW_WIDTH) / 100.f),
+                        static_cast<float>(WINDOW_HEIGHT) - fluidSolver.particles[i].position.y * (static_cast<float>(WINDOW_WIDTH) / 100.f)); // particle to pixel
+                    particleLables[i].setPosition(pixelCoord);
+                    window.draw(particleLables[i]);
+                }
             }
         }
 
@@ -231,9 +252,12 @@ int main()
         }
         previousTime = currentTime;
 
-        for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
+        for (size_t i = 0; i < fluidSolver.numParticles; i++)
         {
-            maxVelocity = max(maxVelocity, sqrt(fluidSolver.particles[i].velocity.x * fluidSolver.particles[i].velocity.x + fluidSolver.particles[i].velocity.y * fluidSolver.particles[i].velocity.y));
+            if (fluidSolver.particles[i].isFluid)
+            {
+                maxVelocity = max(maxVelocity, sqrt(fluidSolver.particles[i].velocity.x * fluidSolver.particles[i].velocity.x + fluidSolver.particles[i].velocity.y * fluidSolver.particles[i].velocity.y));
+            }
         }
 
         cflNumber.setString("CFL: lambda >= " + to_string((fluidSolver.TIME_STEP * maxVelocity) / fluidSolver.H) + ", maxTimeStep: " + to_string(fluidSolver.H / maxVelocity) + ", fps: " + to_string(fps));
