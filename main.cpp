@@ -11,7 +11,7 @@ using namespace std;
 using namespace std::chrono;
 using namespace sf;
 
-FluidSolver fluidSolver(100000);
+FluidSolver fluidSolver(1000);
 
 int main()
 {
@@ -97,7 +97,7 @@ int main()
                 break;
 
             case Event::MouseButtonPressed:
-                if (event.mouseButton.button == sf::Mouse::Right)
+                if (event.mouseButton.button == sf::Mouse::Right) // TODO: fix, doesnt work because sorted
                 {
                     Vector2i mousePos = Mouse::getPosition(window);
                     Vector2f newOffset = Vector2f(static_cast<float>(mousePos.x) / (static_cast<float>(WINDOW_HEIGHT) / 100.f),
@@ -136,8 +136,10 @@ int main()
             // runtime measurement
             auto start = high_resolution_clock::now();
 
+            /*gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            gridQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);*/
+
             indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
@@ -165,10 +167,19 @@ int main()
             cout << duration.count() << endl;
             cout << chrono::duration<double>(duration).count() << endl;
 
-            /*fluidSolver.computeDensityAndPressure();
+            auto start2 = high_resolution_clock::now();
+
+            indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+
+            auto stop2 = high_resolution_clock::now();
+            auto duration2 = duration_cast<chrono::milliseconds>(stop2 - start2);
+            cout << duration2.count() << endl;
+            cout << chrono::duration<double>(duration2).count() << endl;
+
+            fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
-            fluidSolver.updatePositions();*/
-            // stopSimulation = true;
+            fluidSolver.updatePositions();
+            stopSimulation = true;
         }
 
         /* Draw */

@@ -7,6 +7,9 @@
 
 using namespace std;
 
+// grid
+extern vector<vector<Particle*>> cells;
+
 // index sort
 extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
 extern vector<int> getParticleIndices; // change to vector, no memory allocations
@@ -14,13 +17,15 @@ extern vector<int> getParticleIndices; // change to vector, no memory allocation
 // spatial hashing
 
 /* */
-void gridConstruction();
+void boundingBoxConstruction(Particle* particles, int numParticles, float h);
 /* */
-void gridQuery();
+void gridConstruction(Particle* particles, int numParticles, float h);
 /* */
-void indexSortConstruction(Particle* particles, int numFluidParticles, float H);
+void gridQuery(Particle* particles, int numParticles, float h);
 /* */
-void indexSortQuery(Particle* particles, int numFluidParticles, float H);
+void indexSortConstruction(Particle* particles, int numParticles, float h);
+/* */
+void indexSortQuery(Particle* particles, int numParticles, float h);
 /* */
 void zIndexSortConstruction();
 /* */
