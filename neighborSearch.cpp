@@ -4,9 +4,11 @@
 
 using namespace std::chrono;
 
-vector<vector<Particle*>> cells = vector<vector<Particle*>>();
+vector<vector<Particle*>> cells;
 float* boundingBox = new float[6];
-vector<int> getParticleIndices = vector<int>();
+vector<int> getParticleIndices;
+const int m = 2000;
+vector<Particle*> hashTable[m]; // size: 2 * number of particles
 
 void boundingBoxConstruction(Particle* particles, int numParticles, float h)
 {
@@ -50,11 +52,13 @@ void gridConstruction(Particle* particles, int numParticles, float h)
     // particles are stored in a cell, without sorting
     boundingBoxConstruction(particles, numParticles, h);
 
-    // compute cell index with (k, l, m)
+    // add needed cells
+    cells.resize(boundingBox[4] * boundingBox[5] + 1);
     for (size_t i = 0; i < boundingBox[4] * boundingBox[5] + 1; i++)
     {
-        cells.push_back(vector<Particle*>());
+        cells.at(i).clear();
     }
+    // compute cell index with (k, l, m)
     for (size_t i = 0; i < numParticles; i++)
     {
         int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h));
@@ -109,11 +113,9 @@ void indexSortConstruction(Particle* particles, int numParticles, float h)
     boundingBoxConstruction(particles, numParticles, h);
 
     // compute cell index with (k, l, m)
-    getParticleIndices.clear();
-    for (size_t i = 0; i < boundingBox[4] * boundingBox[5] + 1; i++)
-    {
-        getParticleIndices.push_back(0);
-    }
+    getParticleIndices.resize(boundingBox[4] * boundingBox[5] + 1);
+    fill(getParticleIndices.begin(), getParticleIndices.end(), 0);
+
     for (size_t i = 0; i < numParticles; i++)
     {
         int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
@@ -193,16 +195,99 @@ void zIndexSortQuery()
 
 }
 
-void spatialHashingConstruction()
+int hashFunction(int cellIndexX, int cellIndexY, int sizeHashTable, float d)
 {
-    // maps grid cell to a hash cell
-    // compute cell index c or cell identifier (k, l, m) for particles
-    // compute hash function i = h(c) or i = h(k, l, m)
-    // store particles in array (hash table) at index i (maybe vector of vectors?)
+    return (static_cast<int>(cellIndexX / d * 73856093) xor static_cast<int>(cellIndexY / d * 19349663)) % sizeHashTable;
 }
-void spatialHashingQuery()
+
+void spatialHashingConstruction(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    // reset/ remove old particles
+    for (size_t i = 0; i < m; i++)
+    {
+        hashTable[i].clear();
+    }
+
+    // maps grid cell to a hash cell
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        // compute cell index c or cell identifier (k, l, m) for particles
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * h));
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        // compute hash function i = h(c) or i = h(k, l, m)
+        int hashIndex = hashFunction(k, l, m, 1000.f); // / d ? prevent integer overflow
+        // store particles in array (hash table) at index i (array of vectors)
+        hashTable[hashIndex].push_back(&particles[i]);
+    }
+}
+
+void spatialHashingQuery(Particle* particles, int numParticles, float h)
 {
     // with hash function h(c)
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        // only fluid needs neighbors
+        if (particles[i].isFluid)
+        {
+            // remove old neighbors
+            particles[i].neighbors.clear();
+
+            // mask to compute adjacent cell indices
+            int cellIndices[][2] = {
+                {-1, 1}, {0, 1}, {1, 1},
+                {-1, 0}, {0, 0}, {1, 0},
+                {-1, -1}, {0, -1}, {1, -1}
+            };
+
+            // check particles in all adjacent cells
+            for (size_t j = 0; j < 9; j++)
+            {
+                int newIndexX = particles[i].k + cellIndices[j][0];
+                int newIndexY = particles[i].l + cellIndices[j][1];
+
+                // check for out of bounds cells
+                if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+                {
+                    // cell location in hash table
+                    int hashIndex = hashFunction(newIndexX, newIndexY, m, 1000.f);
+
+                    // compare particle distances in the cell with current particle
+                    for (size_t k = 0; k < hashTable[hashIndex].size(); k++)
+                    {
+                        // compute distance
+                        Vector2f d = Vector2f(particles[i].position.x - hashTable[hashIndex].at(k)->position.x, particles[i].position.y - hashTable[hashIndex].at(k)->position.y);
+                        float distance = sqrt(d.x * d.x + d.y * d.y); // float distanceSquared = d.x * d.x + d.y * d.y; if (distanceSquared < (2.0f * h) * (2.0f * h))
+                        
+                        // check if neighbor
+                        if (distance < 2.0f * h)
+                        {
+                            // prevent duplicates -> sets?
+                            bool duplicate = false;
+                            for (size_t h = 0; h < particles[i].neighbors.size(); h++)
+                            {
+                                if (particles[i].neighbors.at(h)->index == hashTable[hashIndex].at(k)->index)
+                                {
+                                    duplicate = true;
+                                    break;
+                                }
+                            }
+                            if (!duplicate)
+                            {
+                                // add to neighbors
+                                particles[i].neighbors.push_back(hashTable[hashIndex].at(k));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void compactHashingConstruction()

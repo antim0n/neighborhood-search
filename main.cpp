@@ -21,6 +21,7 @@ int main()
     // states
     bool stopSimulation = false;
     bool showNeighbors = false;
+    bool showGrid = false;
 
     /* setup window */
     RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "FluidSolver", Style::Default);
@@ -55,7 +56,7 @@ int main()
     float maxVelocity = 0;
 
     /* Buttons */
-    Button b1(Vector2i(50, 20), Vector2i(10, 50), Color::Green, Text("push", font, 15));
+    Button b1(Vector2i(50, 20), Vector2i(10, 50), Color::Green, Text("Grid", font, 15));
 
     /* allocate memory for the particle shapes */
     CircleShape* drawingCircles = new CircleShape[fluidSolver.numParticles];
@@ -109,7 +110,7 @@ int main()
                 {
                     if (b1.border.contains(Vector2i(Mouse::getPosition(window))))
                     {
-                        cout << "pushed\n";
+                        showGrid = !showGrid;
                     }
                 }
                 break;
@@ -136,50 +137,38 @@ int main()
             // runtime measurement
             auto start = high_resolution_clock::now();
 
-            /*gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            gridQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);*/
-
-            indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-
-            /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
-            {
-                for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
-                {
-                    cout << fluidSolver.particles[i].neighbors[j]->index << " ";
-                }
-                cout << endl;
-            }
-            cout << endl;*/
-
             // fluidSolver.neighborSearchNN(2);
+            // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<chrono::milliseconds>(stop - start);
+            cout << "Construction: " << duration.count() << " " << chrono::duration<double>(duration).count() << endl;
+
+            auto start2 = high_resolution_clock::now();
+
+            // gridQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // spatialHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
                 {
-                    cout << fluidSolver.particles[i].neighbors[j]->index << " ";
+                    cout << fluidSolver.particles[i].neighbors.at(j)->index << " ";
                 }
                 cout << endl;
             }*/
 
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<chrono::milliseconds>(stop - start);
-            cout << duration.count() << endl;
-            cout << chrono::duration<double>(duration).count() << endl;
-
-            auto start2 = high_resolution_clock::now();
-
-            indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-
             auto stop2 = high_resolution_clock::now();
             auto duration2 = duration_cast<chrono::milliseconds>(stop2 - start2);
-            cout << duration2.count() << endl;
-            cout << chrono::duration<double>(duration2).count() << endl;
+            cout << "Query: " << duration2.count() << " " << chrono::duration<double>(duration2).count() << endl;
 
             fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
             fluidSolver.updatePositions();
-            stopSimulation = true;
+            // stopSimulation = true;
         }
 
         /* Draw */
@@ -204,38 +193,41 @@ int main()
         }
 
         // grid
-        for (size_t i = 0; i < boundingBox[4] + 1; i++) // vertical
+        if (showGrid)
         {
-            Vertex line[] = {
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * i, boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * i, boundingBox[2] + 2.f * fluidSolver.H * (boundingBox[5])), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
-            window.draw(line, 2, Lines);
-        }
-        for (size_t i = 0; i < boundingBox[5] + 1; i++) // horizontal
-        {
-            Vertex line[] = {
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
-                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * boundingBox[4], boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
-            window.draw(line, 2, Lines);
-        }
+            for (size_t i = 0; i < boundingBox[4] + 1; i++) // vertical
+            {
+                Vertex line[] = {
+                    Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * i, boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
+                    Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * i, boundingBox[2] + 2.f * fluidSolver.H * (boundingBox[5])), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
+                window.draw(line, 2, Lines);
+            }
+            for (size_t i = 0; i < boundingBox[5] + 1; i++) // horizontal
+            {
+                Vertex line[] = {
+                    Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow),
+                    Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0] + 2.f * fluidSolver.H * boundingBox[4], boundingBox[2] + 2.f * fluidSolver.H * i), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Yellow) };
+                window.draw(line, 2, Lines);
+            }
 
-        // bounding box
-        Vertex line1[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
-        Vertex line2[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
-        Vertex line3[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
-        Vertex line4[] = {
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
-            Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
-        window.draw(line1, 2, Lines);
-        window.draw(line2, 2, Lines);
-        window.draw(line3, 2, Lines);
-        window.draw(line4, 2, Lines);
+            // bounding box
+            Vertex line1[] = {
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex line2[] = {
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex line3[] = {
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[0], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            Vertex line4[] = {
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[2]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red),
+                Vertex(fluidSolver.particleToPixelCoord(Vector2f(boundingBox[1], boundingBox[3]), WINDOW_WIDTH, WINDOW_HEIGHT), Color::Red) };
+            window.draw(line1, 2, Lines);
+            window.draw(line2, 2, Lines);
+            window.draw(line3, 2, Lines);
+            window.draw(line4, 2, Lines);
+        }
 
         /* text */
         if (showNeighbors)

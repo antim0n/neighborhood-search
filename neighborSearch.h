@@ -15,6 +15,7 @@ extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
 extern vector<int> getParticleIndices; // change to vector, no memory allocations
 
 // spatial hashing
+extern vector<Particle*> hashTable[];
 
 /* */
 void boundingBoxConstruction(Particle* particles, int numParticles, float h);
@@ -31,9 +32,9 @@ void zIndexSortConstruction();
 /* */
 void zIndexSortQuery();
 /* */
-void spatialHashingConstruction();
+void spatialHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
-void spatialHashingQuery();
+void spatialHashingQuery(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingConstruction();
 /* */
