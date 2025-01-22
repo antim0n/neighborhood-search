@@ -8,14 +8,19 @@
 using namespace std;
 
 // grid
+extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
 extern vector<vector<Particle*>> cells;
 
 // index sort
-extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
 extern vector<int> getParticleIndices; // change to vector, no memory allocations
 
 // spatial hashing
 extern vector<Particle*> hashTable[];
+
+// compact hashing
+// extern int* handleArray;
+// extern vector<Particle*>* compactList;
+// extern vector<Particle*>* usedCellsEntries;
 
 /* */
 void boundingBoxConstruction(Particle* particles, int numParticles, float h);
@@ -28,14 +33,14 @@ void indexSortConstruction(Particle* particles, int numParticles, float h);
 /* */
 void indexSortQuery(Particle* particles, int numParticles, float h);
 /* */
-void zIndexSortConstruction();
+void zIndexSortConstruction(Particle* particles, int numParticles, float h);
 /* */
-void zIndexSortQuery();
+void zIndexSortQuery(Particle* particles, int numParticles, float h);
 /* */
 void spatialHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
 void spatialHashingQuery(Particle* particles, int numParticles, float h);
 /* */
-void compactHashingConstruction();
+void compactHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
-void compactHashingQuery();
+void compactHashingQuery(Particle* particles, int numParticles, float h);
