@@ -3,6 +3,7 @@
 #include <SFML/System.hpp>
 #include <iostream>
 #include <chrono>
+#include <numeric>
 #include "fluidSolver.h"
 #include "neighborSearch.h"
 #include "button.h"
@@ -26,7 +27,7 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(1000);
+    FluidSolver fluidSolver(5000);
 
     int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
     const int WINDOW_WIDTH = 900;
@@ -36,6 +37,7 @@ int main()
     bool stopSimulation = false;
     bool showNeighbors = false;
     bool showGrid = false;
+    bool gatherRuntimes = false;
 
     /* setup window */
     RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "FluidSolver", Style::Default);
@@ -49,6 +51,10 @@ int main()
     Time currentTime;
     int fps = 60;
     int counter = 0;
+
+    // performance average
+    vector<chrono::milliseconds> runtimeConstruction;
+    vector<chrono::milliseconds> runtimeQuery;
 
     /* load font and prepare text */
     Font font;
@@ -70,7 +76,8 @@ int main()
     float maxVelocity = 0;
 
     /* Buttons */
-    Button b1(Vector2i(50, 20), Vector2i(10, 50), Color::Green, Text("Grid", font, 15));
+    Button b1(Vector2i(50, 20), Vector2i(10, 50), Color::Green, Text("grid", font, 15));
+    Button b2(Vector2i(60, 20), Vector2i(70, 50), Color::Green, Text("runtime", font, 15));
 
     /* allocate memory for the particle shapes */
     CircleShape* drawingCircles = new CircleShape[fluidSolver.numParticles];
@@ -126,6 +133,28 @@ int main()
                     {
                         showGrid = !showGrid;
                     }
+                    if (b2.border.contains(Vector2i(Mouse::getPosition(window))))
+                    {
+                        if (gatherRuntimes)
+                        {
+                            auto duration = accumulate(runtimeConstruction.begin(), runtimeConstruction.end(), decltype(runtimeConstruction)::value_type(0));
+                            duration = duration / runtimeConstruction.size();
+                            cout << "Construction: " << duration.count() << " " << chrono::duration<double>(duration).count() << endl;
+
+                            auto duration2 = accumulate(runtimeQuery.begin(), runtimeQuery.end(), decltype(runtimeQuery)::value_type(0));
+                            duration2 = duration2 / runtimeQuery.size();
+                            cout << "Query: " << duration2.count() << " " << chrono::duration<double>(duration2).count() << endl;
+
+                            gatherRuntimes = false;
+                        }
+                        else
+                        {
+                            cout << "Start collection ..." << endl;
+                            runtimeConstruction.clear();
+                            runtimeQuery.clear();
+                            gatherRuntimes = true;
+                        } 
+                    }
                 }
                 break;
 
@@ -148,22 +177,18 @@ int main()
         if (!stopSimulation)
         {
             /* Update (SPH Fluid Solver) */
+
             // runtime measurement
             auto start = high_resolution_clock::now();
-
             // fluidSolver.neighborSearchNN(2);
             gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-
             auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<chrono::milliseconds>(stop - start);
-            cout << "Construction: " << duration.count() << " " << chrono::duration<double>(duration).count() << endl;
 
             auto start2 = high_resolution_clock::now();
-
             gridQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -178,15 +203,20 @@ int main()
                 }
                 cout << endl;
             }*/
-
             auto stop2 = high_resolution_clock::now();
-            auto duration2 = duration_cast<chrono::milliseconds>(stop2 - start2);
-            cout << "Query: " << duration2.count() << " " << chrono::duration<double>(duration2).count() << endl;
 
             fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
             fluidSolver.updatePositions();
             // stopSimulation = true;
+
+            if (gatherRuntimes)
+            {
+                auto duration = duration_cast<chrono::milliseconds>(stop - start);
+                runtimeConstruction.push_back(duration);
+                auto duration2 = duration_cast<chrono::milliseconds>(stop2 - start2);
+                runtimeQuery.push_back(duration2);
+            }
         }
 
         /* Draw */
@@ -291,6 +321,8 @@ int main()
         /* buttons */
         window.draw(b1.shape);
         window.draw(b1.name);
+        window.draw(b2.shape);
+        window.draw(b2.name);
 
         /* Display */
         window.display();
