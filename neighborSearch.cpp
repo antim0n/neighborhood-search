@@ -301,9 +301,9 @@ void zIndexSortQuery(Particle* particles, int numParticles, float h)
     }
 }
 
-int hashFunction(int cellIndexX, int cellIndexY, int sizeHashTable, float d)
+static unsigned int hashFunction(int cellIndexX, int cellIndexY, unsigned int sizeHashTable)
 {
-    return (static_cast<int>(cellIndexX / d * 73856093) xor static_cast<int>(cellIndexY / d * 19349663)) % sizeHashTable;
+    return ((cellIndexX * 73856093u) ^ (cellIndexY * 19349663u)) % sizeHashTable; // overflow creates negative number, either add sizeHashTable, use unsigned int or other larger datatypes
 }
 
 void spatialHashingConstruction(Particle* particles, int numParticles, float h)
@@ -327,7 +327,7 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h)
         particles[i].l = l;
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, m, 1000.f); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, m); // prevent integer overflow
         // store particles in array (hash table) at index i (array of vectors)
         hashTable[hashIndex].push_back(&particles[i]); // store indicies instead of pointer?
     }
@@ -361,7 +361,7 @@ void spatialHashingQuery(Particle* particles, int numParticles, float h)
                 if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
                 {
                     // cell location in hash table
-                    int hashIndex = hashFunction(newIndexX, newIndexY, m, 1000.f);
+                    int hashIndex = hashFunction(newIndexX, newIndexY, m);
 
                     // compare particle distances in the cell with current particle
                     for (size_t k = 0; k < hashTable[hashIndex].size(); k++)
@@ -422,7 +422,7 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
         particles[i].l = l;
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, m, 1000.f); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -441,59 +441,48 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
 
 void compactHashingQuery(Particle* particles, int numParticles, float h)
 {
-    // with hash function h(c)
-    for (size_t i = 0; i < numParticles; i++)
+    for (size_t i = 0; i < compactList.size(); i++)
     {
-        // only fluid needs neighbors
-        if (particles[i].isFluid)
+        for (size_t j = 0; j < compactList.at(i).size(); j++)
         {
-            // remove old neighbors
-            particles[i].neighbors.clear();
-
-            // mask to compute adjacent cell indices
-            int cellIndices[][2] = {
-                {-1, 1}, {0, 1}, {1, 1},
-                {-1, 0}, {0, 0}, {1, 0},
-                {-1, -1}, {0, -1}, {1, -1}
-            };
-
-            // check particles in all adjacent cells
-            for (size_t j = 0; j < 9; j++)
+            if (compactList.at(i).at(j)->isFluid)
             {
-                int newIndexX = particles[i].k + cellIndices[j][0];
-                int newIndexY = particles[i].l + cellIndices[j][1];
+                compactList.at(i).at(j)->neighbors.clear();
 
-                // check for out of bounds cells
-                if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+                // calculate used cells
+                int cellIndices[][2] = { // maybe leave out 0,0 because it is equal to i in the end
+                    {-1, 1}, {0, 1}, {1, 1},
+                    {-1, 0}, {0, 0}, {1, 0},
+                    {-1, -1}, {0, -1}, {1, -1}
+                };
+
+                for (size_t k = 0; k < 9; k++)
                 {
-                    // cell location in hash table
-                    int hashIndex = hashFunction(newIndexX, newIndexY, m, 1000.f);
-                    int usedCellIndex = handleArray[hashIndex];
+                    int hashIndex = hashFunction(compactList.at(i).at(j)->k + cellIndices[k][0], compactList.at(i).at(j)->l + cellIndices[k][1], m);
+                    int usedCellIndex = handleArray[hashIndex] - 1; // handleArray store Indicies from 1-2000 not 0-1999
 
-                    // compare particle distances in the cell with current particle
-                    for (size_t k = 0; k < compactList.at(usedCellIndex).size(); k++)
+                    if (usedCellIndex != -1) // 0 has no entry in the compact List
                     {
-                        // compute distance
-                        Vector2f d = Vector2f(particles[i].position.x - compactList.at(usedCellIndex).at(k)->position.x, particles[i].position.y - compactList.at(usedCellIndex).at(k)->position.y);
-                        float distance = sqrt(d.x * d.x + d.y * d.y);
-
-                        // check if neighbor
-                        if (distance < 2.0f * h)
+                        for (size_t y = 0; y < compactList.at(usedCellIndex).size(); y++)
                         {
-                            // prevent duplicates
-                            bool duplicate = false;
-                            for (size_t z = 0; z < particles[i].neighbors.size(); z++)
+                            Vector2f d = compactList.at(i).at(j)->position - compactList.at(usedCellIndex).at(y)->position;
+                            float distance = sqrt(d.x * d.x + d.y * d.y);
+
+                            if (distance < 2.0f * h)
                             {
-                                if (particles[i].neighbors.at(z)->index == compactList.at(usedCellIndex).at(k)->index)
+                                bool duplicate = false;
+                                for (size_t z = 0; z < compactList.at(i).at(j)->neighbors.size(); z++)
                                 {
-                                    duplicate = true;
-                                    break;
+                                    if (compactList.at(i).at(j)->neighbors.at(z)->index == compactList.at(usedCellIndex).at(y)->index)
+                                    {
+                                        duplicate = true;
+                                        break;
+                                    }
                                 }
-                            }
-                            if (!duplicate)
-                            {
-                                // add to neighbors
-                                particles[i].neighbors.push_back(compactList.at(usedCellIndex).at(k));
+                                if (!duplicate)
+                                {
+                                    compactList.at(i).at(j)->neighbors.push_back(compactList.at(usedCellIndex).at(y));
+                                }
                             }
                         }
                     }
