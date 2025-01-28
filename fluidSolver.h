@@ -23,7 +23,7 @@ public:
     const Vector2f GRAVITY = Vector2f(0.f, -9.81f);
 
     int numFluidParticles;
-    int numBoundaryParticles = 400; // 400
+    int numBoundaryParticles;
     int numParticles;
 
     Particle* particles; // maybe change to vector
@@ -33,10 +33,6 @@ public:
     // destructor
     ~FluidSolver();
 
-    /* */
-    Vector2f particleToPixelCoord(Vector2f particlePos, int windowWidth, int windowHeight);
-    /* */
-    Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int windowHeight);
     /* */
     void initializeFluidParticles(Vector2f offset);
     /* */

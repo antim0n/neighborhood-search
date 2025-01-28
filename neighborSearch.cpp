@@ -1,13 +1,10 @@
 #include "neighborSearch.h"
 #include <iostream>
-#include <chrono>
-
-using namespace std::chrono;
 
 vector<vector<Particle*>> cells;
 float* boundingBox = new float[6];
 vector<int> getParticleIndices;
-const int m = 2000;
+const int m = 2000; // should change when number of fluid particles are changed
 vector<Particle*> hashTable[m]; // size: 2 * number of particles
 int handleArray[m];
 vector<vector<Particle*>> compactList;
@@ -60,6 +57,7 @@ void gridConstruction(Particle* particles, int numParticles, float h)
     {
         cells.at(i).clear();
     }
+
     // compute cell index with (k, l, m)
     for (size_t i = 0; i < numParticles; i++)
     {
@@ -70,7 +68,7 @@ void gridConstruction(Particle* particles, int numParticles, float h)
     }
 }
 
-void gridQuery(Particle* particles, int numParticles, float h) // wrong
+void gridQuery(Particle* particles, int numParticles, float h) // wrong, why?
 {
     for (size_t i = 0; i < numParticles; i++)
     {

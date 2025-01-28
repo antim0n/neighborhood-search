@@ -1,23 +1,13 @@
 #include "fluidSolver.h"
 #include <iostream>
 
-Vector2f FluidSolver::pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int windowHeight) // TODO: remove from fluidSolver class?
-{
-    return Vector2f(static_cast<float>(pixelPos.x) / (static_cast<float>(windowWidth) / 100.f),
-        static_cast<float>(windowHeight - pixelPos.y) / (static_cast<float>(windowWidth) / 100.f));
-}
-
-Vector2f FluidSolver::particleToPixelCoord(Vector2f particlePos, int windowWidth, int windowHeight)
-{
-    return Vector2f((particlePos.x) * (static_cast<float>(windowWidth) / 100.f),
-        static_cast<float>(windowHeight) - particlePos.y * (static_cast<float>(windowWidth) / 100.f));
-}
 
 FluidSolver::FluidSolver(int size)
 {
     numFluidParticles = size;
-    numParticles = numBoundaryParticles + size;
-    particles = new Particle[numBoundaryParticles + size];
+    numBoundaryParticles = sqrt(numFluidParticles) * 16;
+    numParticles = numBoundaryParticles + numFluidParticles;
+    particles = new Particle[numParticles];
 }
 
 FluidSolver::~FluidSolver()
@@ -52,24 +42,42 @@ void FluidSolver::initializeBoundaryParticles()
         float temp1 = 0.f;
         float temp2 = 0.f;
 
+        int fourth = numBoundaryParticles / 4;
+        if (fourth % 2)
+        {
+            fourth -= 1;
+        }
+
         // basic rectangle
-        if (i - numFluidParticles < 120)
+        if (i - numFluidParticles < fourth) // 120
         {
             // right
-            temp1 = H * ((i - numFluidParticles) % 2 + 80);
-            temp2 = (H * ((i - numFluidParticles) / 2 + 5));
+            temp1 = H * ((i - numFluidParticles) % 2 + fourth / 2);
+            temp2 = H * ((i - numFluidParticles) / 2 + 5);
         }
-        else if (i - numFluidParticles < 240)
+        else if (i - numFluidParticles < fourth * 2)
         {
             // left
-            temp1 = H * ((i - numFluidParticles - 120) % 2 + 2);
-            temp2 = (H * ((i - numFluidParticles - 120) / 2 + 5));
+            temp1 = H * ((i - numFluidParticles - fourth) % 2 + 2);
+            temp2 = H * ((i - numFluidParticles - fourth) / 2 + 5);
+        }
+        else if (i - numFluidParticles < fourth * 3)
+        {
+            // top
+            temp1 = H * ((i - numFluidParticles - fourth * 2) % (fourth / 2) + 2);
+            temp2 = H * ((i - numFluidParticles - fourth * 2) / (fourth / 2) + fourth / 2 + 5);
+        }
+        else if (i - numFluidParticles < fourth * 4)
+        {
+            // bottom
+            temp1 = H * ((i - numFluidParticles - fourth * 3) % (fourth / 2) + 2);
+            temp2 = H * ((i - numFluidParticles - fourth * 3) / (fourth / 2) + 3);
         }
         else
         {
             // bottom
-            temp1 = H * ((i - numFluidParticles - 240) % 80 + 2);
-            temp2 = (H * ((i - numFluidParticles - 240) / 80 + 3));
+            temp1 = H * ((i - numFluidParticles - fourth * 4) % (fourth / 2) + 2 + fourth / 2);
+            temp2 = H * ((i - numFluidParticles - fourth * 4) / (fourth / 2) + 3);
         }
 
         particles[i].pressure = PRESSURE;
