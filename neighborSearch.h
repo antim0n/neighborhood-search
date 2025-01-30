@@ -17,6 +17,9 @@ extern vector<int> getParticleIndices; // change to vector, no memory allocation
 // spatial hashing
 extern vector<Particle*> hashTable[];
 
+// z-index sort
+// extern int** sortedIndices;
+
 // compact hashing
 // extern int* handleArray;
 // extern vector<Particle*>* compactList;
@@ -39,7 +42,7 @@ void zIndexSortQuery(Particle* particles, int numParticles, float h);
 /* */
 void spatialHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
-void spatialHashingQuery(Particle* particles, int numParticles, float h);
+void spatialHashingQuery(Particle* particles, int numFluidParticles, float h);
 /* */
 void compactHashingConstruction(Particle* particles, int numParticles, float h);
 /* */

@@ -120,7 +120,7 @@ void indexSortConstruction(Particle* particles, int numParticles, float h)
     {
         int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
         int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * h));
-        particles[i].cellIndex = k + l * boundingBox[4]; // TODO: with morton code (z-curve, bit-interleaving)
+        particles[i].cellIndex = k + l * boundingBox[4];
         // increment cellIndices
         getParticleIndices.at(particles[i].cellIndex) += 1;
     }
@@ -212,7 +212,7 @@ void zIndexSortConstruction(Particle* particles, int numParticles, float h)
         biggerXY = boundingBox[4];
     }
     biggerXY = pow(2, static_cast<int>(log2(biggerXY) + 1));
-    int requiredSize = biggerXY * biggerXY; // z-index can be alot bigger -> always in 2^n rekursive boxes, unnessesary used memory
+    int requiredSize = biggerXY * biggerXY; // z-index can be alot bigger -> always in 2^n rekursive boxes, unnessesary used memory TODO: compression
     getParticleIndices.resize(requiredSize); // every cell points to the first of its particles
     fill(getParticleIndices.begin(), getParticleIndices.end(), 0);
 
@@ -237,6 +237,7 @@ void zIndexSortConstruction(Particle* particles, int numParticles, float h)
     {
         getParticleIndices.at(i) += getParticleIndices.at(i - 1);
     }
+
     // sort particles with respect to their index with the help of cellIndices
     // insertion sort
     // getParticleIndices.at(0) -= 1; why did i do that?
@@ -252,6 +253,46 @@ void zIndexSortConstruction(Particle* particles, int numParticles, float h)
         }
         particles[j + 1] = current;
     }
+
+    //// array with only current index and cellIndex
+    //sortedIndices = new int* [numParticles];
+    //for (int i = 0; i < numParticles; ++i) {
+    //    sortedIndices[i] = new int[2];
+    //}
+
+    //for (size_t i = 0; i < numParticles; i++)
+    //{
+    //    sortedIndices[i][0] = i;
+    //    sortedIndices[i][1] = particles[i].cellIndex;
+    //}
+    //// insertion sort
+    //for (size_t i = 1; i < numParticles; i++)
+    //{
+    //    int current[2] = { sortedIndices[i][0], sortedIndices[i][1] };
+    //    getParticleIndices.at(current[1]) -= 1;
+    //    int j = i - 1;
+    //    while (j >= 0 && current[1] < sortedIndices[j][1])
+    //    {
+    //        sortedIndices[j + 1][0] = sortedIndices[j][0];
+    //        sortedIndices[j + 1][1] = sortedIndices[j][1];
+    //        j -= 1;
+    //    }
+    //    sortedIndices[j + 1][0] = current[0];
+    //    sortedIndices[j + 1][1] = current[1];
+    //}
+    //if (counter == 0)
+    //{
+    //    // copy particles twice
+    //    Particle* sortedParticles = new Particle[numParticles];
+    //    for (size_t i = 0; i < numParticles; i++)
+    //    {
+    //        sortedParticles[i] = particles[sortedIndices[i][0]];
+    //    }
+    //    copy(sortedParticles, sortedParticles + numParticles, particles);
+    //    delete[] sortedParticles;
+    //    counter += 1;
+    //    counter %= 100; // only sort particle data every 100th step
+    //}
 }
 
 void zIndexSortQuery(Particle* particles, int numParticles, float h)
@@ -331,61 +372,57 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h)
     }
 }
 
-void spatialHashingQuery(Particle* particles, int numParticles, float h)
+void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
 {
     // with hash function h(c)
-    for (size_t i = 0; i < numParticles; i++) // TODO actually doesnt need this as particles don't change position
+    for (size_t i = 0; i < numFluidParticles; i++)
     {
-        // only fluid needs neighbors
-        if (particles[i].isFluid)
+        // remove old neighbors
+        particles[i].neighbors.clear();
+
+        // mask to compute adjacent cell indices
+        int cellIndices[][2] = {
+            {-1, 1}, {0, 1}, {1, 1},
+            {-1, 0}, {0, 0}, {1, 0},
+            {-1, -1}, {0, -1}, {1, -1}
+        };
+
+        // check particles in all adjacent cells
+        for (size_t j = 0; j < 9; j++)
         {
-            // remove old neighbors
-            particles[i].neighbors.clear();
+            int newIndexX = particles[i].k + cellIndices[j][0];
+            int newIndexY = particles[i].l + cellIndices[j][1];
 
-            // mask to compute adjacent cell indices
-            int cellIndices[][2] = {
-                {-1, 1}, {0, 1}, {1, 1},
-                {-1, 0}, {0, 0}, {1, 0},
-                {-1, -1}, {0, -1}, {1, -1}
-            };
-
-            // check particles in all adjacent cells
-            for (size_t j = 0; j < 9; j++)
+            // check for out of bounds cells
+            if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
             {
-                int newIndexX = particles[i].k + cellIndices[j][0];
-                int newIndexY = particles[i].l + cellIndices[j][1];
+                // cell location in hash table
+                int hashIndex = hashFunction(newIndexX, newIndexY, m);
 
-                // check for out of bounds cells
-                if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+                // compare particle distances in the cell with current particle
+                for (size_t k = 0; k < hashTable[hashIndex].size(); k++)
                 {
-                    // cell location in hash table
-                    int hashIndex = hashFunction(newIndexX, newIndexY, m);
-
-                    // compare particle distances in the cell with current particle
-                    for (size_t k = 0; k < hashTable[hashIndex].size(); k++)
-                    {
-                        // compute distance
-                        Vector2f d = Vector2f(particles[i].position.x - hashTable[hashIndex].at(k)->position.x, particles[i].position.y - hashTable[hashIndex].at(k)->position.y);
-                        float distance = sqrt(d.x * d.x + d.y * d.y); // float distanceSquared = d.x * d.x + d.y * d.y; if (distanceSquared < (2.0f * h) * (2.0f * h))
+                    // compute distance
+                    Vector2f d = Vector2f(particles[i].position.x - hashTable[hashIndex].at(k)->position.x, particles[i].position.y - hashTable[hashIndex].at(k)->position.y);
+                    float distance = sqrt(d.x * d.x + d.y * d.y); // float distanceSquared = d.x * d.x + d.y * d.y; if (distanceSquared < (2.0f * h) * (2.0f * h))
                         
-                        // check if neighbor
-                        if (distance < 2.0f * h)
+                    // check if neighbor
+                    if (distance < 2.0f * h)
+                    {
+                        // prevent duplicates -> sets?
+                        bool duplicate = false;
+                        for (size_t z = 0; z < particles[i].neighbors.size(); z++)
                         {
-                            // prevent duplicates -> sets?
-                            bool duplicate = false;
-                            for (size_t z = 0; z < particles[i].neighbors.size(); z++)
+                            if (particles[i].neighbors.at(z)->index == hashTable[hashIndex].at(k)->index)
                             {
-                                if (particles[i].neighbors.at(z)->index == hashTable[hashIndex].at(k)->index)
-                                {
-                                    duplicate = true;
-                                    break;
-                                }
+                                duplicate = true;
+                                break;
                             }
-                            if (!duplicate)
-                            {
-                                // add to neighbors
-                                particles[i].neighbors.push_back(hashTable[hashIndex].at(k));
-                            }
+                        }
+                        if (!duplicate)
+                        {
+                            // add to neighbors
+                            particles[i].neighbors.push_back(hashTable[hashIndex].at(k));
                         }
                     }
                 }
