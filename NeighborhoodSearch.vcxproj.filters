@@ -24,7 +24,22 @@
     <ClCompile Include="button.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="neighborSearch.cpp">
+    <ClCompile Include="indexSort.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="basicGrid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zIndexSort.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spatialHashing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compactHashing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="helperFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,10 +50,25 @@
     <ClInclude Include="button.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="neighborSearch.h">
+    <ClInclude Include="particle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="particle.h">
+    <ClInclude Include="indexSort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zIndexSort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spatialHashing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="compactHashing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="basicGrid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="helperFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

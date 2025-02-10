@@ -133,16 +133,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="basicGrid.cpp" />
     <ClCompile Include="button.cpp" />
+    <ClCompile Include="compactHashing.cpp" />
     <ClCompile Include="fluidSolver.cpp" />
+    <ClCompile Include="helperFunctions.cpp" />
+    <ClCompile Include="indexSort.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="neighborSearch.cpp" />
+    <ClCompile Include="spatialHashing.cpp" />
+    <ClCompile Include="zIndexSort.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="basicGrid.h" />
     <ClInclude Include="button.h" />
+    <ClInclude Include="compactHashing.h" />
     <ClInclude Include="fluidSolver.h" />
-    <ClInclude Include="neighborSearch.h" />
+    <ClInclude Include="helperFunctions.h" />
+    <ClInclude Include="indexSort.h" />
     <ClInclude Include="particle.h" />
+    <ClInclude Include="spatialHashing.h" />
+    <ClInclude Include="zIndexSort.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
