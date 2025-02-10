@@ -137,6 +137,8 @@ int main()
                     {
                         if (gatherRuntimes)
                         {
+                            cout << "End collecting ..." << endl;
+
                             auto duration = accumulate(runtimeConstruction.begin(), runtimeConstruction.end(), decltype(runtimeConstruction)::value_type(0));
                             duration = duration / runtimeConstruction.size();
                             cout << "Construction: " << duration.count() << " " << chrono::duration<double>(duration).count() << endl;
@@ -149,7 +151,7 @@ int main()
                         }
                         else
                         {
-                            cout << "Start collection ..." << endl;
+                            cout << "Start collecting ..." << endl;
                             runtimeConstruction.clear();
                             runtimeQuery.clear();
                             gatherRuntimes = true;
@@ -183,9 +185,9 @@ int main()
             // fluidSolver.neighborSearchNN(2);
             // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            zIndexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<chrono::milliseconds>(stop - start);
             cout << "Construction: " << duration.count() << " " << chrono::duration<double>(duration).count() << endl;
@@ -193,9 +195,9 @@ int main()
             auto start2 = high_resolution_clock::now();
             // gridQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            zIndexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
@@ -334,10 +336,7 @@ int main()
     delete[] drawingCircles;
     delete[] particleLables;
     delete[] boundingBox;
-   /* for (int i = 0; i < fluidSolver.numParticles; i++) {
-        delete[] sortedIndices[i];
-    }
-    delete[] sortedIndices;*/
+    delete[] sortedIndices;
 
     return EXIT_SUCCESS;
 }

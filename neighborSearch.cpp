@@ -8,6 +8,10 @@ const int m = 2000; // should change when number of fluid particles are changed
 vector<Particle*> hashTable[m]; // size: 2 * number of particles
 int handleArray[m];
 vector<vector<Particle*>> compactList;
+// z-index sort
+Handle* sortedIndices = nullptr;
+int maxVal = 10;
+int globalCounter = 100;
 
 void boundingBoxConstruction(Particle* particles, int numParticles, float h)
 {
@@ -185,7 +189,7 @@ void indexSortQuery(Particle* particles, int numParticles, float h) // no bounda
     }
 }
 
-// Helper function to spread the bits of a 32-bit integer into 64 bits // thx chatgpt
+// Helper function to spread the bits of a 32-bit integer into 64 bits // https://lemire.me/blog/2018/01/08/how-fast-can-you-bit-interleave-32-bit-integers/
 static uint64_t spreadBits(uint32_t x) {
     uint64_t result = x;
     result = (result | (result << 16)) & 0x0000FFFF0000FFFF;
@@ -254,45 +258,60 @@ void zIndexSortConstruction(Particle* particles, int numParticles, float h)
         particles[j + 1] = current;
     }
 
-    //// array with only current index and cellIndex
-    //sortedIndices = new int* [numParticles];
-    //for (int i = 0; i < numParticles; ++i) {
-    //    sortedIndices[i] = new int[2];
+    // array with only current index and cellIndex
+    //if (sortedIndices == nullptr)
+    //{
+    //    sortedIndices = new Handle[numParticles];
     //}
-
+    //if (counter == 0)
+    //{
+    //    for (size_t i = 1; i < numParticles; i++)
+    //    {
+    //        Particle current = particles[i];
+    //        int j = i - 1;
+    //        while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+    //        {
+    //            particles[j + 1] = particles[j];
+    //            j -= 1;
+    //        }
+    //        particles[j + 1] = current;
+    //    }
+    //}
     //for (size_t i = 0; i < numParticles; i++)
     //{
-    //    sortedIndices[i][0] = i;
-    //    sortedIndices[i][1] = particles[i].cellIndex;
+    //    sortedIndices[i] = { particles[i].cellIndex, &particles[i] };
     //}
     //// insertion sort
     //for (size_t i = 1; i < numParticles; i++)
     //{
-    //    int current[2] = { sortedIndices[i][0], sortedIndices[i][1] };
-    //    getParticleIndices.at(current[1]) -= 1;
+    //    Handle current = sortedIndices[i];
+    //    getParticleIndices.at(current.cellIndex) -= 1;
     //    int j = i - 1;
-    //    while (j >= 0 && current[1] < sortedIndices[j][1])
+    //    while (j >= 0 && current.cellIndex < sortedIndices[j].cellIndex)
     //    {
-    //        sortedIndices[j + 1][0] = sortedIndices[j][0];
-    //        sortedIndices[j + 1][1] = sortedIndices[j][1];
+    //        sortedIndices[j + 1] = sortedIndices[j];
     //        j -= 1;
     //    }
-    //    sortedIndices[j + 1][0] = current[0];
-    //    sortedIndices[j + 1][1] = current[1];
+    //    sortedIndices[j + 1] = current;
     //}
-    //if (counter == 0)
+    //// initial sort
+    //if (counter == maxVal)
     //{
     //    // copy particles twice
     //    Particle* sortedParticles = new Particle[numParticles];
     //    for (size_t i = 0; i < numParticles; i++)
     //    {
-    //        sortedParticles[i] = particles[sortedIndices[i][0]];
+    //        sortedParticles[i] = *sortedIndices[i].reference;
     //    }
     //    copy(sortedParticles, sortedParticles + numParticles, particles);
     //    delete[] sortedParticles;
-    //    counter += 1;
-    //    counter %= 100; // only sort particle data every 100th step
+    //    for (size_t i = 0; i < numParticles; i++)
+    //    {
+    //        sortedIndices[i] = { particles[i].cellIndex, &particles[i] };
+    //    }
     //}
+    //counter += 1;
+    //counter %= maxVal; // only sort particle data every nth step
 }
 
 void zIndexSortQuery(Particle* particles, int numParticles, float h)
@@ -339,6 +358,51 @@ void zIndexSortQuery(Particle* particles, int numParticles, float h)
         }
     }
 }
+
+//void zIndexSortQuery(Particle* particles, int numParticles, float h)
+//{
+//    for (size_t i = 0; i < numParticles; i++)
+//    {
+//        if (sortedIndices[i].reference->isFluid)
+//        {
+//            sortedIndices[i].reference->neighbors.clear();
+//
+//            // mask to compute adjacent cell indices
+//            int cellIndices[][2] = {
+//                {-1, 1}, {0, 1}, {1, 1},
+//                {-1, 0}, {0, 0}, {1, 0},
+//                {-1, -1}, {0, -1}, {1, -1}
+//            };
+//
+//            // check particles in all adjacent cells
+//            for (size_t j = 0; j < 9; j++)
+//            {
+//                int newIndexX = sortedIndices[i].reference->k + cellIndices[j][0];
+//                int newIndexY = sortedIndices[i].reference->l + cellIndices[j][1];
+//
+//                // check for out of bounds cells
+//                if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+//                {
+//                    // cell z-index
+//                    uint32_t x = newIndexX;
+//                    uint32_t y = newIndexY;
+//                    uint64_t zIndex = interleaveBits(x, y);
+//
+//                    // compare with current particle
+//                    for (size_t k = getParticleIndices.at(zIndex); k < getParticleIndices.at(zIndex + 1); k++)
+//                    {
+//                        Vector2f d = sortedIndices[i].reference->position - sortedIndices[k].reference->position;
+//                        float distance = sqrt(d.x * d.x + d.y * d.y);
+//                        if (distance < 2.0f * h)
+//                        {
+//                            sortedIndices[i].reference->neighbors.push_back(sortedIndices[k].reference);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
 
 static unsigned int hashFunction(int cellIndexX, int cellIndexY, unsigned int sizeHashTable)
 {
@@ -443,7 +507,64 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
 
     // reset/ remove old particles
     fill(handleArray, handleArray + m, 0);
-    compactList.clear(); // temporal coherance improvement doesn't need this
+    compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
+    compactList.reserve(numParticles / 4); // should at least need this amount of cells
+
+    // secondary structure
+    if (globalCounter == 1)
+    {
+        if (sortedIndices == nullptr)
+        {
+            sortedIndices = new Handle[numParticles];
+        }
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedIndices[i] = { particles[i].cellIndex, &particles[i] };
+        }
+        for (size_t i = 1; i < numParticles; i++)
+        {
+            Handle current = sortedIndices[i];
+            int j = i - 1;
+            while (j >= 0 && current.cellIndex < sortedIndices[j].cellIndex)
+            {
+                sortedIndices[j + 1] = sortedIndices[j];
+                j -= 1;
+            }
+            sortedIndices[j + 1] = current;
+        }
+        // copy particles twice
+        Particle* sortedParticles = new Particle[numParticles];
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedParticles[i] = *sortedIndices[i].reference;
+        }
+        copy(sortedParticles, sortedParticles + numParticles, particles);
+        delete[] sortedParticles;
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedIndices[i] = { particles[i].cellIndex, &particles[i] };
+        }
+    }
+    globalCounter += 1;
+    globalCounter %= 100;
+
+    //if (globalCounter == 1) // TODO: secondary structure
+    //{
+    //    // z-sorted
+    //    for (size_t i = 1; i < numParticles; i++)
+    //    {
+    //        Particle current = particles[i];
+    //        int j = i - 1;
+    //        while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+    //        {
+    //            particles[j + 1] = particles[j];
+    //            j -= 1;
+    //        }
+    //        particles[j + 1] = current;
+    //    }
+    //}
+    //globalCounter += 1;
+    //globalCounter %= 100;
 
     // maps grid cell to a hash cell
     int counter = 1; // to differenatiate from "0" entries
@@ -456,6 +577,15 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
         particles[i].k = k;
         particles[i].l = l;
 
+        if (globalCounter == 1)
+        {
+            // z-index
+            uint32_t x = k;
+            uint32_t y = l;
+            uint64_t zindex = interleaveBits(x, y);
+            particles[i].cellIndex = zindex;
+        }
+
         // compute hash function i = h(c) or i = h(k, l, m)
         int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
 
@@ -464,6 +594,7 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
         {
             handleArray[hashIndex] = counter;
             compactList.push_back(vector<Particle*>());
+            compactList.at(counter - 1).reserve(4); // preallocate k entries
             compactList.at(counter - 1).push_back(&particles[i]);
             counter += 1;
         }

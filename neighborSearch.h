@@ -18,7 +18,12 @@ extern vector<int> getParticleIndices; // change to vector, no memory allocation
 extern vector<Particle*> hashTable[];
 
 // z-index sort
-// extern int** sortedIndices;
+struct Handle
+{
+	int cellIndex;
+	Particle* reference;
+};
+extern Handle* sortedIndices;
 
 // compact hashing
 // extern int* handleArray;
