@@ -14,4 +14,8 @@ extern Handle* sortedIndicesZI;
 /* */
 void zIndexSortConstruction(Particle* particles, int numParticles, float h);
 /* */
+void zIndexSortConstructionHandleSort(Particle* particles, int numParticles, float h);
+/* */
 void zIndexSortQuery(Particle* particles, int numParticles, float h);
+/* */
+void zIndexSortQueryHandleSort(Particle* particles, int numParticles, float h);

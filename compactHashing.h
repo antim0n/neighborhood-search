@@ -18,4 +18,6 @@ extern Handle* sortedIndicesCH;
 /* */
 void compactHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
+void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h);
+/* */
 void compactHashingQuery(Particle* particles, int numParticles, float h);

@@ -22,6 +22,60 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
     compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
     compactList.reserve(numParticles / 4); // should at least need this amount of cells
 
+    // maps grid cell to a hash cell
+    int counter = 1; // to differenatiate from "0" entries
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        // compute cell index c or cell identifier (k, l, m) for particles
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * h));
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        if (globalCounterCH == 1)
+        {
+            // z-index
+            uint32_t x = k;
+            uint32_t y = l;
+            uint64_t zindex = interleaveBits(x, y);
+            particles[i].cellIndex = zindex;
+        }
+
+        // compute hash function i = h(c) or i = h(k, l, m)
+        int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
+
+        // store particles in array (hash table) at index i (array of vectors)
+        if (handleArray[hashIndex] == 0)
+        {
+            handleArray[hashIndex] = counter;
+            compactList.push_back(vector<Particle*>());
+            compactList.at(counter - 1).reserve(4); // preallocate k entries
+            compactList.at(counter - 1).push_back(&particles[i]);
+            counter += 1;
+        }
+        else
+        {
+            compactList.at(handleArray[hashIndex] - 1).push_back(&particles[i]);
+        }
+    }
+}
+
+void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h)
+{
+    // secondary data structure to store a compact list of non-empty cells
+    // hash cells store a handle to corresponding used cell
+    // only allocate if used
+    // hash table, handle array, compact lists
+    // TODO: improvements, preallocate lists with maximally expected number of particles in a cell?, z-sorted secondary structure
+
+    boundingBoxConstruction(particles, numParticles, h);
+
+    // reset/ remove old particles
+    fill(handleArray, handleArray + m, 0);
+    compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
+    compactList.reserve(numParticles / 4); // should at least need this amount of cells
+
     // secondary structure
     if (globalCounterCH == 1)
     {
@@ -60,23 +114,23 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
     globalCounterCH += 1;
     globalCounterCH %= 100;
 
-    //if (globalCounter == 1) // TODO: secondary structure
-    //{
-    //    // z-sorted
-    //    for (size_t i = 1; i < numParticles; i++)
-    //    {
-    //        Particle current = particles[i];
-    //        int j = i - 1;
-    //        while (j >= 0 && current.cellIndex < particles[j].cellIndex)
-    //        {
-    //            particles[j + 1] = particles[j];
-    //            j -= 1;
-    //        }
-    //        particles[j + 1] = current;
-    //    }
-    //}
-    //globalCounter += 1;
-    //globalCounter %= 100;
+    if (globalCounterCH == 1) // TODO: secondary structure
+    {
+        // z-sorted
+        for (size_t i = 1; i < numParticles; i++)
+        {
+            Particle current = particles[i];
+            int j = i - 1;
+            while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+            {
+                particles[j + 1] = particles[j];
+                j -= 1;
+            }
+            particles[j + 1] = current;
+        }
+    }
+    globalCounterCH += 1;
+    globalCounterCH %= 100;
 
     // maps grid cell to a hash cell
     int counter = 1; // to differenatiate from "0" entries
