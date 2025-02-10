@@ -7,6 +7,7 @@ Handle* sortedIndicesCH = nullptr;
 int maxValCH = 10;
 int globalCounterCH = 100;
 
+
 void compactHashingConstruction(Particle* particles, int numParticles, float h)
 {
     // secondary data structure to store a compact list of non-empty cells
@@ -15,6 +16,42 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
     // hash table, handle array, compact lists
     // TODO: improvements, preallocate lists with maximally expected number of particles in a cell?, z-sorted secondary structure
 
+    boundingBoxConstruction(particles, numParticles, h);
+
+    // reset/ remove old particles
+    fill(handleArray, handleArray + m, 0);
+    compactList.clear(); // temporal coherance improvement doesn't need this
+
+    // maps grid cell to a hash cell
+    int counter = 1; // to differenatiate from "0" entries
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        // compute cell index c or cell identifier (k, l, m) for particles
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * h));
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        // compute hash function i = h(c) or i = h(k, l, m)
+        int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
+
+        // store particles in array (hash table) at index i (array of vectors)
+        if (handleArray[hashIndex] == 0)
+        {
+            handleArray[hashIndex] = counter;
+            compactList.push_back(vector<Particle*>());
+            compactList.at(counter - 1).push_back(&particles[i]);
+            counter += 1;
+        }
+        else
+        {
+            compactList.at(handleArray[hashIndex] - 1).push_back(&particles[i]);
+        }
+    }
+}
+void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h)
+{
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
@@ -61,14 +98,8 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
     }
 }
 
-void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h)
+void compactHashingConstructionHandleSort(Particle* particles, int numParticles, float h)
 {
-    // secondary data structure to store a compact list of non-empty cells
-    // hash cells store a handle to corresponding used cell
-    // only allocate if used
-    // hash table, handle array, compact lists
-    // TODO: improvements, preallocate lists with maximally expected number of particles in a cell?, z-sorted secondary structure
-
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles

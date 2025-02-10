@@ -20,4 +20,6 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h);
 /* */
+void compactHashingConstructionHandleSort(Particle* particles, int numParticles, float h);
+/* */
 void compactHashingQuery(Particle* particles, int numParticles, float h);
