@@ -69,8 +69,8 @@ void indexSortQuery(Particle* particles, int numParticles, float h) // no bounda
                     for (size_t k = getParticleIndicesI.at(cellIndices[j]); k < getParticleIndicesI.at(cellIndices[j] + 1); k++)
                     {
                         Vector2f d = particles[i].position - particles[k].position;
-                        float distance = sqrt(d.x * d.x + d.y * d.y);
-                        if (distance < 2.0f * h)
+                        float distance = d.x * d.x + d.y * d.y;
+                        if (distance < (2.0f * h) * (2.0f * h))
                         {
                             particles[i].neighbors.push_back(&particles[k]);
                         }

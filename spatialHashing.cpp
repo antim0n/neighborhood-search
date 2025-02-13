@@ -62,10 +62,9 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
                 {
                     // compute distance
                     Vector2f d = Vector2f(particles[i].position.x - hashTable[hashIndex].at(k)->position.x, particles[i].position.y - hashTable[hashIndex].at(k)->position.y);
-                    float distance = sqrt(d.x * d.x + d.y * d.y); // float distanceSquared = d.x * d.x + d.y * d.y; if (distanceSquared < (2.0f * h) * (2.0f * h))
-
+                    float distance = d.x * d.x + d.y * d.y;
                     // check if neighbor
-                    if (distance < 2.0f * h)
+                    if (distance < (2.0f * h) * (2.0f * h))
                     {
                         // prevent duplicates -> sets?
                         bool duplicate = false;

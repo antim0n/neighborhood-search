@@ -31,7 +31,7 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(1000);
+    FluidSolver fluidSolver(100000);
 
     int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
     const int WINDOW_WIDTH = 900;
@@ -200,7 +200,9 @@ int main()
 
             auto start2 = high_resolution_clock::now();
 
-            // gridQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // gridQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            // gridQueryGenerallyImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+
             // indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);

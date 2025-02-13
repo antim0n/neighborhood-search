@@ -187,8 +187,8 @@ void zIndexSortQuery(Particle* particles, int numParticles, float h)
                     for (size_t k = getParticleIndicesZI.at(zIndex); k < getParticleIndicesZI.at(zIndex + 1); k++)
                     {
                         Vector2f d = particles[i].position - particles[k].position;
-                        float distance = sqrt(d.x * d.x + d.y * d.y);
-                        if (distance < 2.0f * h)
+                        float distance = d.x * d.x + d.y * d.y;
+                        if (distance < (2.0f * h) * (2.0f * h))
                         {
                             particles[i].neighbors.push_back(&particles[k]);
                         }
@@ -232,8 +232,8 @@ void zIndexSortQueryHandleSort(Particle* particles, int numParticles, float h)
                     for (size_t k = getParticleIndicesZI.at(zIndex); k < getParticleIndicesZI.at(zIndex + 1); k++)
                     {
                         Vector2f d = sortedIndicesZI[i].reference->position - sortedIndicesZI[k].reference->position;
-                        float distance = sqrt(d.x * d.x + d.y * d.y);
-                        if (distance < 2.0f * h)
+                        float distance = d.x * d.x + d.y * d.y;
+                        if (distance < (2.0f * h) * (2.0f * h))
                         {
                             sortedIndicesZI[i].reference->neighbors.push_back(sortedIndicesZI[k].reference);
                         }

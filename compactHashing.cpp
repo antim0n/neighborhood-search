@@ -229,9 +229,9 @@ void compactHashingQuery(Particle* particles, int numParticles, float h)
                         for (size_t y = 0; y < compactList.at(usedCellIndex).size(); y++)
                         {
                             Vector2f d = compactList.at(i).at(j)->position - compactList.at(usedCellIndex).at(y)->position;
-                            float distance = sqrt(d.x * d.x + d.y * d.y);
+                            float distance = d.x * d.x + d.y * d.y;
 
-                            if (distance < 2.0f * h)
+                            if (distance < (2.0f * h) * (2.0f * h))
                             {
                                 bool duplicate = false;
                                 for (size_t z = 0; z < compactList.at(i).at(j)->neighbors.size(); z++)
