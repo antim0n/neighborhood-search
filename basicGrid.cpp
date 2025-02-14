@@ -27,7 +27,7 @@ void gridConstruction(Particle* particles, int numParticles, float h)
     }
 }
 
-void gridConstructionGenerallyImproved(Particle* particles, int numParticles, float h)
+void gridConstructionImproved(Particle* particles, int numParticles, float h)
 {
     boundingBoxConstruction(particles, numParticles, h);
 
@@ -96,7 +96,7 @@ void gridQuery(Particle* particles, int numFluidParticles, float h)
 
 void gridQueryOverCells(float h)
 {
-    // a lot of empty cells but less cell index calculation TODO
+    // a lot of empty cells but less cell index calculation
     // spatial locality probably worse
     for (size_t i = 0; i < boundingBox[4] * boundingBox[5] + 1; i++)
     {
@@ -140,7 +140,7 @@ void gridQueryOverCells(float h)
     }
 }
 
-void gridQueryGenerallyImproved(Particle* particles, int numFluidParticles, float h)
+void gridQueryImproved(Particle* particles, int numFluidParticles, float h)
 {
     // precompute (not significant)
     int bboxX = boundingBox[4];

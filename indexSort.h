@@ -8,7 +8,21 @@
 
 using namespace std;
 
+extern Particle* sortedParticlesI;
+
 /* */
-void indexSortConstruction(Particle* particles, int numParticles, float h);
+void indexSortConstructionCountingSort(Particle* particles, int numParticles, float h);
+/* */
+void indexSortConstructionCompareSorting(Particle* particles, int numParticles, float h);
+/* */
+void indexSortConstructionCountingSortImproved(Particle* particles, int numParticles, float h);
+/* */
+void indexSortConstructionInsertionSortImproved(Particle* particles, int numParticles, float h);
 /* */
 void indexSortQuery(Particle* particles, int numParticles, float h);
+/* */
+void indexSortQueryImproved(Particle* particles, int numParticles, float h);
+/* */
+void indexSortQueryOverCells(Particle* particles, int numParticles, float h);
+/* */
+void indexSortQueryOverCellsImproved(Particle* particles, int numParticles, float h);
