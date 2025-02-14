@@ -11,8 +11,10 @@ using namespace std;
 /* */
 void gridConstruction(Particle* particles, int numParticles, float h);
 /* */
+void gridConstructionGenerallyImproved(Particle* particles, int numParticles, float h);
+/* */
 void gridQuery(Particle* particles, int numFluidParticles, float h);
 /* */
-void gridQueryGenerallyImproved(Particle* particles, int numFluidParticles, float h);
+void gridQueryOverCells(float h);
 /* */
-void gridQueryOverCells(Particle* particles, int numFluidParticles, float h);
+void gridQueryGenerallyImproved(Particle* particles, int numFluidParticles, float h);

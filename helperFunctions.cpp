@@ -1,6 +1,6 @@
 #include "helperFunctions.h"
 
-float* boundingBox = new float[6];
+float* boundingBox = new float[7];
 
 void boundingBoxConstruction(Particle* particles, int numParticles, float h)
 {
@@ -9,6 +9,7 @@ void boundingBoxConstruction(Particle* particles, int numParticles, float h)
     boundingBox[1] = particles[0].position.x; // max
     boundingBox[2] = particles[0].position.y; // min
     boundingBox[3] = particles[0].position.y; // max
+
     // compute bounding box
     for (size_t i = 0; i < numParticles; i++)
     {
@@ -29,6 +30,7 @@ void boundingBoxConstruction(Particle* particles, int numParticles, float h)
             boundingBox[3] = particles[i].position.y;
         }
     }
+
     boundingBox[0] -= 0.4 * h; // make grid slightly bigger for edge cases
     boundingBox[1] += 0.4 * h;
     boundingBox[2] -= 0.4 * h;
@@ -36,6 +38,7 @@ void boundingBoxConstruction(Particle* particles, int numParticles, float h)
 
     boundingBox[4] = ceil((boundingBox[1] - boundingBox[0]) / (2.f * h));
     boundingBox[5] = ceil((boundingBox[3] - boundingBox[2]) / (2.f * h));
+    boundingBox[6] = boundingBox[4] * boundingBox[5];
 }
 
 unsigned int hashFunction(int cellIndexX, int cellIndexY, unsigned int sizeHashTable)

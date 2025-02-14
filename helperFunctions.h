@@ -8,7 +8,7 @@ struct Handle
 	Particle* reference;
 };
 
-extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy
+extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy, cells
 
 /* */
 void boundingBoxConstruction(Particle* particles, int numParticles, float h);

@@ -188,11 +188,14 @@ int main()
             auto start = high_resolution_clock::now();
 
             // fluidSolver.neighborSearchNN(2);
+            
             // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            gridConstructionGenerallyImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            
             // indexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<chrono::milliseconds>(stop - start);
@@ -201,12 +204,13 @@ int main()
             auto start2 = high_resolution_clock::now();
 
             // gridQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            // gridQueryGenerallyImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            // gridQueryOverCells(fluidSolver.H);
+            gridQueryGenerallyImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
