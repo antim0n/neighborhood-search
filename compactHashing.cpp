@@ -1,7 +1,7 @@
 #include "compactHashing.h"
 
-const int m = 2000; // should change when number of fluid particles are changed
-int handleArray[m];
+const int hashTableSize = 2000; // should change when number of fluid particles are changed
+int handleArray[hashTableSize];
 vector<vector<Particle*>> compactList;
 Handle* sortedIndicesCH = nullptr;
 int maxValCH = 10;
@@ -19,7 +19,7 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
-    fill(handleArray, handleArray + m, 0);
+    fill(handleArray, handleArray + hashTableSize, 0);
     compactList.clear(); // temporal coherance improvement doesn't need this
 
     // maps grid cell to a hash cell
@@ -34,7 +34,7 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
         particles[i].l = l;
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSize); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -55,7 +55,7 @@ void compactHashingConstructionZSorted(Particle* particles, int numParticles, fl
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
-    fill(handleArray, handleArray + m, 0);
+    fill(handleArray, handleArray + hashTableSize, 0);
     compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
     compactList.reserve(numParticles / 4); // should at least need this amount of cells
 
@@ -80,7 +80,7 @@ void compactHashingConstructionZSorted(Particle* particles, int numParticles, fl
         }
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSize); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -103,7 +103,7 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
-    fill(handleArray, handleArray + m, 0);
+    fill(handleArray, handleArray + hashTableSize, 0);
     compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
     compactList.reserve(numParticles / 4); // should at least need this amount of cells
 
@@ -184,7 +184,7 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
         }
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, m); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSize); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -221,7 +221,7 @@ void compactHashingQuery(Particle* particles, int numParticles, float h)
 
                 for (size_t k = 0; k < 9; k++)
                 {
-                    int hashIndex = hashFunction(compactList.at(i).at(j)->k + cellIndices[k][0], compactList.at(i).at(j)->l + cellIndices[k][1], m);
+                    int hashIndex = hashFunction(compactList.at(i).at(j)->k + cellIndices[k][0], compactList.at(i).at(j)->l + cellIndices[k][1], hashTableSize);
                     int usedCellIndex = handleArray[hashIndex] - 1; // handleArray store Indicies from 1-2000 not 0-1999
 
                     if (usedCellIndex != -1) // 0 has no entry in the compact List

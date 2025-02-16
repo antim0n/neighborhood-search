@@ -8,7 +8,15 @@
 
 using namespace std;
 
+extern vector<Particle*>* hashTableSH;
+
 /* */
 void spatialHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
+void spatialHashingConstructionImproved(Particle* particles, int numParticles, float h);
+/* */
 void spatialHashingQuery(Particle* particles, int numFluidParticles, float h);
+/* */
+void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, float h);
+/* */
+void spatialHashingQueryOverCellsImproved(Particle* particles, int numFluidParticles, float h);

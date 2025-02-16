@@ -2,7 +2,7 @@
 
 float* boundingBox = new float[7];
 
-void boundingBoxConstruction(Particle* particles, int numParticles, float h)
+void boundingBoxConstruction(Particle* particles, int numParticles, float h) // TODO reduce calculations? if grid does not change
 {
     // xmin, xmax, ymin, ymax, cellsx, cellsy
     boundingBox[0] = particles[0].position.x; // min
