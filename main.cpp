@@ -197,10 +197,14 @@ int main()
             
             // indexSortConstructionCountingSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortConstructionCompareSorting(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            indexSortConstructionCountingSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortConstructionInsertionSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // indexSortConstructionCountingSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             // zIndexSortConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            zIndexSortConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
@@ -217,9 +221,15 @@ int main()
             // indexSortQueryOverCells(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortQueryOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            indexSortQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // indexSortQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // indexSortQueryKLImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             // zIndexSortQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortQueryHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortQueryHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            zIndexSortQueryHandleSortOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 

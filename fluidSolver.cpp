@@ -32,6 +32,8 @@ void FluidSolver::initializeFluidParticles(Vector2f offset)
         float temp2 = H * (i / size) + offset.y;
         particles[i].index = i;
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
+        particles[i].k = -1;
+        particles[i].l = -1;
     }
 }
 
@@ -90,6 +92,8 @@ void FluidSolver::initializeBoundaryParticles()
         particles[i].position = Vector2f(temp1, temp2); // distribute the particles
         particles[i].density = REST_DENSITY;
         particles[i].mass = REST_DENSITY * H * H;
+        particles[i].k = -1;
+        particles[i].l = -1;
     }
 }
 

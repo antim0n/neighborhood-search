@@ -1,5 +1,4 @@
 #pragma once
-
 #include "particle.h"
 
 struct Handle
@@ -9,6 +8,12 @@ struct Handle
 };
 
 extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy, cells
+
+static int cellOffset[][2] = {
+    {-1, 1}, {0, 1}, {1, 1},
+    {-1, 0}, {0, 0}, {1, 0},
+    {-1, -1}, {0, -1}, {1, -1}
+};
 
 /* */
 void boundingBoxConstruction(Particle* particles, int numParticles, float h);

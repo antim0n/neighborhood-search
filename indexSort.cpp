@@ -4,9 +4,6 @@
 vector<int> getParticleIndicesI;
 Particle* sortedParticlesI = nullptr;
 
-// int offset[] = { 0, 1, - 1, 0, 0, 1, - 1, 1, - 1 };
-int cellIndices[9];
-
 void indexSortConstructionCountingSort(Particle* particles, int numParticles, float h)
 {
     boundingBoxConstruction(particles, numParticles, h);
@@ -201,7 +198,8 @@ void indexSortConstructionInsertionSortImproved(Particle* particles, int numPart
     boundingBoxConstruction(particles, numParticles, h);
 
     getParticleIndicesI.resize(boundingBox[6] + 1); // boundingBox[6] contains number of cells
-    fill(getParticleIndicesI.begin(), getParticleIndicesI.end(), 0);
+    memset(&getParticleIndicesI[0], 0, (boundingBox[6] + 1) * sizeof(getParticleIndicesI[0])); // memset faster than fill()
+
     // getParticleIndicesI = vector<int>(boundingBox[6] + 1, 0); // instead of resize and fill (slightly worse)
 
     // precompute
@@ -241,7 +239,8 @@ void indexSortConstructionCountingSortImproved(Particle* particles, int numParti
     boundingBoxConstruction(particles, numParticles, h);
 
     getParticleIndicesI.resize(boundingBox[6] + 1); // boundingBox[6] contains number of cells
-    fill(getParticleIndicesI.begin(), getParticleIndicesI.end(), 0);
+    memset(&getParticleIndicesI[0], 0, (boundingBox[6] + 1) * sizeof(getParticleIndicesI[0])); // memset faster than fill()
+
     // getParticleIndicesI = vector<int>(boundingBox[6] + 1, 0); // instead of resize and fill (slightly worse)
 
     // precompute
@@ -252,6 +251,8 @@ void indexSortConstructionCountingSortImproved(Particle* particles, int numParti
     {
         k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
         l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+        particles[i].k = k;
+        particles[i].l = l;
         particles[i].cellIndex = k + l * boundingBox[4];
         getParticleIndicesI[particles[i].cellIndex] += 1; // [] instead of at()
     }
@@ -314,7 +315,7 @@ void indexSortQuery(Particle* particles, int numParticles, float h) // no bounda
 
 void indexSortQueryImproved(Particle* particles, int numParticles, float h) // too many adjacent cells at times (on the edges)
 {
-    // slow but probably nessecary
+    // precompute
     float h2 = (2.0f * h) * (2.0f * h);
 
     // significant improvement by removing the offset calculation
@@ -325,8 +326,8 @@ void indexSortQueryImproved(Particle* particles, int numParticles, float h) // t
         {
             particles[i].neighbors.clear();
             // particles[i].neighbors.reserve(14); // only makes first iteration better
-
-            int cellIndices[] = {
+  
+            int cellIndices[] = { // TODO try with k,l
                 particles[i].cellIndex,
                 particles[i].cellIndex + 1,
                 particles[i].cellIndex - 1,
@@ -337,12 +338,54 @@ void indexSortQueryImproved(Particle* particles, int numParticles, float h) // t
                 particles[i].cellIndex - boundingBox[4] + 1,
                 particles[i].cellIndex - boundingBox[4] - 1
             };
-  
+
             for (size_t j = 0; j < 9; j++)
             {
                 if (cellIndices[j] >= 0 && cellIndices[j] < boundingBox[6])
                 {
                     for (size_t k = getParticleIndicesI[cellIndices[j]]; k < getParticleIndicesI[cellIndices[j] + 1]; k++)
+                    {
+                        // this somehow is good improvement
+                        float dx = particles[i].position.x - particles[k].position.x;
+                        if (dx * dx >= h2) continue;
+
+                        float dy = particles[i].position.y - particles[k].position.y;
+                        float distance = dx * dx + dy * dy;
+                        if (distance < h2) {
+                            particles[i].neighbors.push_back(&particles[k]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void indexSortQueryKLImproved(Particle* particles, int numParticles, float h) // slightly worse
+{
+    // precompute
+    float h2 = (2.0f * h) * (2.0f * h);
+    int newIndexX;
+    int newIndexY;
+
+    // significant improvement by removing the offset calculation
+
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        if (particles[i].isFluid)
+        {
+            particles[i].neighbors.clear();
+            // particles[i].neighbors.reserve(14); // only makes first iteration better
+
+            for (size_t j = 0; j < 9; j++)
+            {
+                newIndexX = particles[i].k + cellOffset[j][0]; // preallocated cellOffset
+                newIndexY = particles[i].l + cellOffset[j][1];
+
+                if (newIndexX >= 0 && newIndexY >= 0 && newIndexX < boundingBox[4] && newIndexY < boundingBox[5])
+                {
+                    int index = newIndexX + newIndexY * boundingBox[4];
+                    for (size_t k = getParticleIndicesI[index]; k < getParticleIndicesI[index + 1]; k++)
                     {
                         // this somehow is good improvement
                         float dx = particles[i].position.x - particles[k].position.x;
@@ -412,15 +455,7 @@ void indexSortQueryOverCellsImproved(Particle* particles, int numParticles, floa
     {
         // saving in terms of cell index computation does improve the performance slightly
         // pretty similar speed in the improved versions
-
-        for (size_t j = getParticleIndicesI[i]; j < getParticleIndicesI[i + 1]; j++)
-        {
-            if (particles[j].isFluid)
-            {
-                particles[j].neighbors.clear();
-                // particles[j].neighbors.reserve(14);
-
-                int cellIndices[] = {
+        int cellIndices[] = {
                     i,
                     i + 1,
                     i - 1,
@@ -430,7 +465,14 @@ void indexSortQueryOverCellsImproved(Particle* particles, int numParticles, floa
                     i + boundingBox[4] - 1,
                     i - boundingBox[4] + 1,
                     i - boundingBox[4] - 1
-                };
+        };
+
+        for (size_t j = getParticleIndicesI[i]; j < getParticleIndicesI[i + 1]; j++)
+        {
+            if (particles[j].isFluid)
+            {
+                particles[j].neighbors.clear();
+                // particles[j].neighbors.reserve(14);
 
                 for (size_t k = 0; k < 9; k++)
                 {
