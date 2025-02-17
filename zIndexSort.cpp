@@ -499,6 +499,7 @@ void zIndexSortQueryHandleSortOverCellsImproved(Particle* particles, int numPart
         // over particles in cell
         for (size_t j = index; j < getParticleIndicesZI[i + 1]; j++)
         {
+            // Particle* current = sortedIndicesZI[j].reference; // not significant
             if (sortedIndicesZI[j].reference->isFluid)
             {
                 sortedIndicesZI[j].reference->neighbors.clear();

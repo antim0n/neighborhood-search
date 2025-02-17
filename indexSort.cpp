@@ -1,4 +1,5 @@
 #include <iostream>
+#include <omp.h>
 #include "indexSort.h"
 
 vector<int> getParticleIndicesI;
@@ -319,7 +320,6 @@ void indexSortQueryImproved(Particle* particles, int numParticles, float h) // t
     float h2 = (2.0f * h) * (2.0f * h);
 
     // significant improvement by removing the offset calculation
-
     for (size_t i = 0; i < numParticles; i++)
     {
         if (particles[i].isFluid)

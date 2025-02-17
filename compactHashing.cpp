@@ -1,14 +1,16 @@
 #include "compactHashing.h"
+#include <iostream>
 
-const int hashTableSize = 2000; // should change when number of fluid particles are changed
-int handleArray[hashTableSize];
+int handleArray[2000];
+int hashTableSizeCH = 2000;
+int* hashTableCH = nullptr;
 vector<vector<Particle*>> compactList;
 Handle* sortedIndicesCH = nullptr;
 int maxValCH = 10;
 int globalCounterCH = 100;
 
 
-void compactHashingConstruction(Particle* particles, int numParticles, float h)
+void compactHashingConstruction(Particle* particles, int numParticles, float h) // TODO don't reset complete structure but move changed particles
 {
     // secondary data structure to store a compact list of non-empty cells
     // hash cells store a handle to corresponding used cell
@@ -19,7 +21,7 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
-    fill(handleArray, handleArray + hashTableSize, 0);
+    fill(handleArray, handleArray + hashTableSizeCH, 0);
     compactList.clear(); // temporal coherance improvement doesn't need this
 
     // maps grid cell to a hash cell
@@ -34,7 +36,7 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
         particles[i].l = l;
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, hashTableSize); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSizeCH); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -50,12 +52,102 @@ void compactHashingConstruction(Particle* particles, int numParticles, float h)
         }
     }
 }
-void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h)
+
+void compactHashingConstructionImproved(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    if (hashTableCH == nullptr)
+    {
+        hashTableSizeCH = 10 * numParticles; // larger hash table compared to spatial, TODO find good table size
+        hashTableCH = new int[hashTableSizeCH];
+    }
+    memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int)); // faster than fill(), TODO most of the table is 0 anyways, can this be improved? maybe also store extra info when it was modified
+    
+    compactList.clear();
+    compactList.reserve(boundingBox[6] / 2); // not significant
+
+    // precompute
+    float invCellSize = 1.f / (2.f * h);
+    int counter = 1;
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        int hashIndex = hashFunction(k, l, hashTableSizeCH);
+
+        if (hashTableCH[hashIndex] == 0)
+        {
+            hashTableCH[hashIndex] = counter;
+            compactList.push_back(vector<Particle*>());
+            compactList[counter - 1].reserve(8); // preallocate memory to avoid unnecessary reallocations, back() could be used, not significant
+            compactList[counter - 1].push_back(&particles[i]);
+            counter += 1;
+        }
+        else
+        {
+            compactList[hashTableCH[hashIndex] - 1].push_back(&particles[i]);
+        }
+    }
+}
+
+void compactHashingConstructionHashCollisionFlagImproved(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    if (hashTableCH == nullptr)
+    {
+        hashTableSizeCH = 10 * numParticles; // larger hash table compared to spatial, TODO find good table size
+        hashTableCH = new int[hashTableSizeCH];
+    }
+    memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int)); // faster than fill(), TODO most of the table is 0 anyways, can this be improved? maybe also store extra info when it was modified
+
+    compactList.clear();
+    compactList.reserve(boundingBox[6] / 2); // not significant
+
+    // precompute
+    float invCellSize = 1.f / (2.f * h);
+    int counter = 1;
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        int hashIndex = hashFunction(k, l, hashTableSizeCH);
+
+        if (hashTableCH[hashIndex] == 0)
+        {
+            hashTableCH[hashIndex] = counter;
+            compactList.push_back(vector<Particle*>());
+            compactList[counter - 1].reserve(8); // preallocate memory to avoid unnecessary reallocations, back() could be used, not significant
+            compactList[counter - 1].push_back(&particles[i]);
+            counter += 1;
+        }
+        else
+        {
+            int actualIndex = hashTableCH[hashIndex] - 1;
+            if ((particles[i].k != compactList[actualIndex].back()->k || particles[i].l != compactList[actualIndex].back()->l) && compactList[actualIndex][0] != 0) // check for hash collisions
+            {
+                compactList[actualIndex].insert(compactList[actualIndex].begin(), nullptr);
+            }
+            compactList[actualIndex].push_back(&particles[i]);
+        }
+    }
+}
+
+void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h) // TODO sort particles according to z curve every nth step + afterwards rebuilt list of used cells
 {
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
-    fill(handleArray, handleArray + hashTableSize, 0);
+    fill(handleArray, handleArray + hashTableSizeCH, 0);
     compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
     compactList.reserve(numParticles / 4); // should at least need this amount of cells
 
@@ -80,7 +172,7 @@ void compactHashingConstructionZSorted(Particle* particles, int numParticles, fl
         }
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, hashTableSize); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSizeCH); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -103,7 +195,7 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
     boundingBoxConstruction(particles, numParticles, h);
 
     // reset/ remove old particles
-    fill(handleArray, handleArray + hashTableSize, 0);
+    fill(handleArray, handleArray + hashTableSizeCH, 0);
     compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
     compactList.reserve(numParticles / 4); // should at least need this amount of cells
 
@@ -184,7 +276,7 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
         }
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, hashTableSize); // / d ? prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSizeCH); // / d ? prevent integer overflow
 
         // store particles in array (hash table) at index i (array of vectors)
         if (handleArray[hashIndex] == 0)
@@ -202,9 +294,9 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
     }
 }
 
-void compactHashingQuery(Particle* particles, int numParticles, float h)
+void compactHashingQuery(Particle* particles, int numParticles, float h) // TODO Remove not needed function parameters
 {
-    for (size_t i = 0; i < compactList.size(); i++)
+    for (size_t i = 0; i < compactList.size(); i++) // list of used cells is queried
     {
         for (size_t j = 0; j < compactList.at(i).size(); j++)
         {
@@ -221,7 +313,7 @@ void compactHashingQuery(Particle* particles, int numParticles, float h)
 
                 for (size_t k = 0; k < 9; k++)
                 {
-                    int hashIndex = hashFunction(compactList.at(i).at(j)->k + cellIndices[k][0], compactList.at(i).at(j)->l + cellIndices[k][1], hashTableSize);
+                    int hashIndex = hashFunction(compactList.at(i).at(j)->k + cellIndices[k][0], compactList.at(i).at(j)->l + cellIndices[k][1], hashTableSizeCH);
                     int usedCellIndex = handleArray[hashIndex] - 1; // handleArray store Indicies from 1-2000 not 0-1999
 
                     if (usedCellIndex != -1) // 0 has no entry in the compact List
@@ -245,6 +337,205 @@ void compactHashingQuery(Particle* particles, int numParticles, float h)
                                 if (!duplicate)
                                 {
                                     compactList.at(i).at(j)->neighbors.push_back(compactList.at(usedCellIndex).at(y));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void compactHashingQueryImproved(Particle* particles, int numParticles, float h)
+{
+    float h2 = (2.0f * h) * (2.0f * h); // Precompute
+
+    for (size_t i = 0; i < compactList.size(); i++) // auto is a litte slower
+    {
+        for (size_t j = 0; j < compactList[i].size(); j++)
+        {
+            Particle* reference = compactList[i][j];
+
+            if (reference->isFluid)
+            {
+                reference->neighbors.clear();
+
+                // cell indices have to be computed for every particle separately
+                int currentK = reference->k;
+                int currentL = reference->l;
+                int cellIndices[] =
+                {
+                    { hashFunction(currentK + cellOffset[0][0], currentL + cellOffset[0][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[1][0], currentL + cellOffset[1][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[2][0], currentL + cellOffset[2][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[3][0], currentL + cellOffset[3][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[4][0], currentL + cellOffset[4][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[5][0], currentL + cellOffset[5][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[6][0], currentL + cellOffset[6][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[7][0], currentL + cellOffset[7][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
+                };
+
+                for (size_t k = 0; k < 9; k++)
+                {
+                    int usedCellIndex = hashTableCH[cellIndices[k]] - 1;
+
+                    if (usedCellIndex != -1)
+                    {
+                        for (size_t y = 0; y < compactList[usedCellIndex].size(); y++)
+                        {
+                            Particle* nReference = compactList[usedCellIndex][y];
+                            Vector2f d = reference->position - nReference->position;
+                            // float dx = compactList[i][j]->position.x - compactList[usedCellIndex][y]->position.x; // slower than vector??
+                            // float dy = compactList[i][j]->position.y - compactList[usedCellIndex][y]->position.y;
+                            // if (d.x * d.x >= h2) continue; // early exit
+
+                            if (d.x * d.x + d.y * d.y < h2)
+                            {
+                                bool duplicate = false;
+                                for (size_t z = 0; z < reference->neighbors.size(); z++)
+                                {
+                                    if (reference->neighbors[z]->index == nReference->index)
+                                    {
+                                        duplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!duplicate)
+                                {
+                                    reference->neighbors.push_back(nReference);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void compactHashingQueryHashCollisionFlagImproved(Particle * particles, int numParticles, float h)
+{
+    float h2 = (2.0f * h) * (2.0f * h); // Precompute
+    for (size_t i = 0; i < compactList.size(); i++) // auto is a litte slower
+    {
+        if (compactList[i][0] != nullptr) // check for hash collision flag, not signifiant improvement
+        {
+            // precompute neighbor cells, only computed once per cell most of the time
+            int currentK = compactList[i][0]->k;
+            int currentL = compactList[i][0]->l;
+            int cellIndices[] =
+            {
+                { hashFunction(currentK + cellOffset[0][0], currentL + cellOffset[0][1], hashTableSizeCH) }, // precomputed offset
+                { hashFunction(currentK + cellOffset[1][0], currentL + cellOffset[1][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[2][0], currentL + cellOffset[2][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[3][0], currentL + cellOffset[3][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[4][0], currentL + cellOffset[4][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[5][0], currentL + cellOffset[5][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[6][0], currentL + cellOffset[6][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[7][0], currentL + cellOffset[7][1], hashTableSizeCH) },
+                { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
+            };
+
+            for (size_t j = 0; j < compactList[i].size(); j++) // at() seems to be faster than [] here
+            {
+                // store compactList.at(i).at(j) temporarily, reduces lookup with significant performance boost
+                Particle* reference = compactList[i][j];
+
+                if (reference->isFluid) // at to []
+                {
+                    reference->neighbors.clear();
+
+                    for (size_t k = 0; k < 9; k++)
+                    {
+                        int usedCellIndex = hashTableCH[cellIndices[k]] - 1;
+
+                        if (usedCellIndex != -1)
+                        {
+                            for (size_t y = 0; y < compactList[usedCellIndex].size(); y++)
+                            {
+                                Particle* nReference = compactList[usedCellIndex][y];
+                                if (nReference == nullptr) continue; // skip hash collision flags
+
+                                Vector2f d = reference->position - nReference->position;
+
+                                if (d.x * d.x + d.y * d.y < h2)
+                                {
+                                    bool duplicate = false;
+                                    for (size_t z = 0; z < reference->neighbors.size(); z++)
+                                    {
+                                        if (reference->neighbors[z]->index == nReference->index)
+                                        {
+                                            duplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!duplicate)
+                                    {
+                                        reference->neighbors.push_back(nReference);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else // hash collision in cell occured
+        {
+            for (size_t j = 1; j < compactList[i].size(); j++) // skip nullpointer
+            {
+                Particle* reference = compactList[i][j];
+                if (reference == nullptr) continue; // skip hash collision flags
+
+                if (reference->isFluid)
+                {
+                    reference->neighbors.clear();
+
+                    // cell indices have to be computed for every particle separately
+                    int currentK = reference->k;
+                    int currentL = reference->l;
+                    int cellIndices[] =
+                    {
+                        { hashFunction(currentK + cellOffset[0][0], currentL + cellOffset[0][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[1][0], currentL + cellOffset[1][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[2][0], currentL + cellOffset[2][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[3][0], currentL + cellOffset[3][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[4][0], currentL + cellOffset[4][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[5][0], currentL + cellOffset[5][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[6][0], currentL + cellOffset[6][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[7][0], currentL + cellOffset[7][1], hashTableSizeCH) },
+                        { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
+                    };
+
+                    for (size_t k = 0; k < 9; k++)
+                    {
+                        int usedCellIndex = hashTableCH[cellIndices[k]] - 1;
+
+                        if (usedCellIndex != -1)
+                        {
+                            for (size_t y = 0; y < compactList[usedCellIndex].size(); y++)
+                            {
+                                Particle* nReference = compactList[usedCellIndex][y];
+                                if (nReference == nullptr) continue; // skip hash collision flags
+
+                                Vector2f d = reference->position - nReference->position;
+                                if (d.x * d.x + d.y * d.y < h2)
+                                {
+                                    bool duplicate = false;
+                                    for (size_t z = 0; z < reference->neighbors.size(); z++)
+                                    {
+                                        if (reference->neighbors[z]->index == nReference->index)
+                                        {
+                                            duplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!duplicate)
+                                    {
+                                        reference->neighbors.push_back(nReference);
+                                    }
                                 }
                             }
                         }

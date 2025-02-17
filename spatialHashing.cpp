@@ -1,8 +1,8 @@
 #include <iostream>
+#include <omp.h>
 #include "spatialHashing.h"
-#include <unordered_set>
 
-int hashTableSize = 0;
+int hashTableSizeSH = 0;
 vector<Particle*>* hashTableSH = nullptr; // size: 2 * number of particles
 
 void spatialHashingConstruction(Particle* particles, int numParticles, float h)
@@ -11,12 +11,12 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h)
     // allocate memory once
     if (hashTableSH == nullptr)
     {
-        hashTableSize = 2 * numParticles;
-        hashTableSH = new vector<Particle*>[hashTableSize];
+        hashTableSizeSH = 2 * numParticles;
+        hashTableSH = new vector<Particle*>[hashTableSizeSH];
     }
 
     // reset/ remove old particles
-    for (size_t i = 0; i < hashTableSize; i++)
+    for (size_t i = 0; i < hashTableSizeSH; i++)
     {
         hashTableSH[i].clear();
     }
@@ -32,7 +32,7 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h)
         particles[i].l = l;
 
         // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, hashTableSize); // prevent integer overflow
+        int hashIndex = hashFunction(k, l, hashTableSizeSH); // prevent integer overflow
         // store particles in array (hash table) at index i (array of vectors)
         hashTableSH[hashIndex].push_back(&particles[i]); // store indicies instead of pointer?
     }
@@ -70,11 +70,11 @@ void spatialHashingConstructionImproved(Particle* particles, int numParticles, f
         //}
         // hashTableSize = pow(2, static_cast<int>(log2(2 * numParticles) + 1)); // power of 2 chat gpt seems to prefer this for a "better modulo performance"
         // hashTableSize = 200000; // power of 10
-        hashTableSize = 2 * numParticles;
-        hashTableSH = new vector<Particle*>[hashTableSize];
+        hashTableSizeSH = 2 * numParticles;
+        hashTableSH = new vector<Particle*>[hashTableSizeSH];
     }
 
-    for (size_t i = 0; i < hashTableSize; i++)
+    for (size_t i = 0; i < hashTableSizeSH; i++)
     {
         hashTableSH[i].clear(); // TODO clear does set the capacity to 0!!
         // hashTableSH[i].reserve(4); // not a significant improvement as too much empty cells, too much slows down the query
@@ -93,7 +93,7 @@ void spatialHashingConstructionImproved(Particle* particles, int numParticles, f
         particles[i].k = k;
         particles[i].l = l;
 
-        int hashIndex = hashFunction(k, l, hashTableSize);
+        int hashIndex = hashFunction(k, l, hashTableSizeSH);
         hashTableSH[hashIndex].push_back(&particles[i]); // store indicies instead of pointer? is a lot slower
     }
 }
@@ -123,7 +123,7 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
             if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
             {
                 // cell location in hash table
-                int hashIndex = hashFunction(newIndexX, newIndexY, hashTableSize);
+                int hashIndex = hashFunction(newIndexX, newIndexY, hashTableSizeSH);
 
                 // compare particle distances in the cell with current particle
                 for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
@@ -178,7 +178,7 @@ void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, flo
 
             if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
             {
-                hashIndex = hashFunction(newIndexX, newIndexY, hashTableSize);
+                hashIndex = hashFunction(newIndexX, newIndexY, hashTableSizeSH);
 
                 for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
                 {

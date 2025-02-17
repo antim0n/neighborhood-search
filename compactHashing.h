@@ -8,6 +8,7 @@
 
 using namespace std;
 
+extern int* hashTableCH;
 extern Handle* sortedIndicesCH;
 
 // compact hashing
@@ -18,8 +19,16 @@ extern Handle* sortedIndicesCH;
 /* */
 void compactHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
+void compactHashingConstructionImproved(Particle* particles, int numParticles, float h);
+/* */
+void compactHashingConstructionHashCollisionFlagImproved(Particle* particles, int numParticles, float h);
+/* */
 void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingConstructionHandleSort(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingQuery(Particle* particles, int numParticles, float h);
+/* */
+void compactHashingQueryImproved(Particle* particles, int numParticles, float h);
+/* */
+void compactHashingQueryHashCollisionFlagImproved(Particle* particles, int numParticles, float h);
