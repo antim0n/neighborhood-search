@@ -7,7 +7,7 @@ int* hashTableCH = nullptr;
 vector<vector<Particle*>> compactList;
 Handle* sortedIndicesCH = nullptr;
 int maxValCH = 10;
-int globalCounterCH = 100;
+int globalCounterCH = 10;
 
 
 void compactHashingConstruction(Particle* particles, int numParticles, float h) // TODO don't reset complete structure but move changed particles
@@ -142,50 +142,62 @@ void compactHashingConstructionHashCollisionFlagImproved(Particle* particles, in
     }
 }
 
-void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h) // TODO sort particles according to z curve every nth step + afterwards rebuilt list of used cells
+void compactHashingConstructionZSortedImproved(Particle* particles, int numParticles, float h) // TODO hilber curve in comparison
 {
     boundingBoxConstruction(particles, numParticles, h);
 
-    // reset/ remove old particles
-    fill(handleArray, handleArray + hashTableSizeCH, 0);
-    compactList.clear(); // X temporal coherance improvement doesn't need this, temporal coherance not usable
-    compactList.reserve(numParticles / 4); // should at least need this amount of cells
+    if (hashTableCH == nullptr)
+    {
+        hashTableSizeCH = 10 * numParticles; // larger hash table
+        hashTableCH = new int[hashTableSizeCH];
+    }
+    memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int));
 
-    // maps grid cell to a hash cell
-    int counter = 1; // to differenatiate from "0" entries
+    compactList.clear();
+    compactList.reserve(boundingBox[6] / 2); // half of max cells as a lot are empty
+
+    // precompute
+    float invCellSize = 1.f / (2.f * h);
     for (size_t i = 0; i < numParticles; i++)
     {
-        // compute cell index c or cell identifier (k, l, m) for particles
-        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) / (2.f * h)); // conversion fails sometimes on edge cases like 1.000 -> 0
-        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) / (2.f * h));
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
 
         particles[i].k = k;
         particles[i].l = l;
+        particles[i].cellIndex = interleaveBits(k, l);
+    }
 
-        if (globalCounterCH == 1)
+    // insertion sort every step
+    for (size_t i = 1; i < numParticles; i++)
+    {
+        Particle current = particles[i];
+        int j = i - 1;
+        while (j >= 0 && current.cellIndex < particles[j].cellIndex)
         {
-            // z-index
-            uint32_t x = k;
-            uint32_t y = l;
-            uint64_t zindex = interleaveBits(x, y);
-            particles[i].cellIndex = zindex;
+            particles[j + 1] = particles[j];
+            j -= 1;
         }
+        particles[j + 1] = current;
+    }
 
-        // compute hash function i = h(c) or i = h(k, l, m)
-        int hashIndex = hashFunction(k, l, hashTableSizeCH); // / d ? prevent integer overflow
+    // insert into hash table
+    int counter = 1; // to differenatiate from "0" entries
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int hashIndex = hashFunction(particles[i].k, particles[i].l, hashTableSizeCH);
 
-        // store particles in array (hash table) at index i (array of vectors)
-        if (handleArray[hashIndex] == 0)
+        if (hashTableCH[hashIndex] == 0)
         {
-            handleArray[hashIndex] = counter;
+            hashTableCH[hashIndex] = counter;
             compactList.push_back(vector<Particle*>());
-            compactList.at(counter - 1).reserve(4); // preallocate k entries
-            compactList.at(counter - 1).push_back(&particles[i]);
+            compactList[counter - 1].reserve(4); // at() to []
+            compactList[counter - 1].push_back(&particles[i]);
             counter += 1;
         }
         else
         {
-            compactList.at(handleArray[hashIndex] - 1).push_back(&particles[i]);
+            compactList[hashTableCH[hashIndex] - 1].push_back(&particles[i]);
         }
     }
 }
@@ -292,6 +304,91 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
             compactList.at(handleArray[hashIndex] - 1).push_back(&particles[i]);
         }
     }
+}
+
+void compactHashingConstructionHandleSortImproved(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    if (hashTableCH == nullptr)
+    {
+        hashTableSizeCH = 10 * numParticles; // larger hash table
+        hashTableCH = new int[hashTableSizeCH];
+    }
+    memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int));
+
+    compactList.clear();
+    compactList.reserve(boundingBox[6] / 2); // half of max cells as a lot are empty
+
+    // precompute
+    int counter = 1; // to differenatiate from "0" entries
+    float invCellSize = 1.f / (2.f * h);
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+        particles[i].cellIndex = interleaveBits(k, l);
+
+        int hashIndex = hashFunction(k, l, hashTableSizeCH);
+
+        if (hashTableCH[hashIndex] == 0)
+        {
+            hashTableCH[hashIndex] = counter;
+            compactList.push_back(vector<Particle*>());
+            compactList[counter - 1].reserve(4); // at() to []
+            compactList[counter - 1].push_back(&particles[i]);
+            counter += 1;
+        }
+        else
+        {
+            compactList[hashTableCH[hashIndex] - 1].push_back(&particles[i]);
+        }
+    }
+
+
+    if (globalCounterCH == maxValCH)
+    {
+        // insertion sort every nth step // TODO only for handle structure?
+        for (size_t i = 1; i < numParticles; i++)
+        {
+            Particle current = particles[i];
+            int j = i - 1;
+            while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+            {
+                particles[j + 1] = particles[j];
+                j -= 1;
+            }
+            particles[j + 1] = current;
+        }
+        // rebuild handle strucure
+        int counter = 0;
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            int hashIndex = hashFunction(particles[i].k, particles[i].l, hashTableSizeCH);
+
+            if (hashTableCH[hashIndex] == 0)
+            {
+                hashTableCH[hashIndex] = counter;
+                compactList.push_back(vector<Particle*>());
+                compactList[counter - 1].reserve(4); // at() to []
+                compactList[counter - 1].push_back(&particles[i]);
+                counter += 1;
+            }
+            else
+            {
+                compactList[hashTableCH[hashIndex] - 1].push_back(&particles[i]);
+            }
+        }
+
+        globalCounterCH = 0;
+    }
+
+    // build secondary structure // TODO can this be avoided?
+
+    globalCounterCH++;
 }
 
 void compactHashingQuery(Particle* particles, int numParticles, float h) // TODO Remove not needed function parameters

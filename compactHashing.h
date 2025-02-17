@@ -23,9 +23,11 @@ void compactHashingConstructionImproved(Particle* particles, int numParticles, f
 /* */
 void compactHashingConstructionHashCollisionFlagImproved(Particle* particles, int numParticles, float h);
 /* */
-void compactHashingConstructionZSorted(Particle* particles, int numParticles, float h);
+void compactHashingConstructionZSortedImproved(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingConstructionHandleSort(Particle* particles, int numParticles, float h);
+/* */
+void compactHashingConstructionHandleSortImproved(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingQuery(Particle* particles, int numParticles, float h);
 /* */

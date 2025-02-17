@@ -235,7 +235,7 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
     {
         sortedIndicesZI = new Handle[numParticles];
     }
-    if (globalCounterZI == 0)
+    if (globalCounterZI == 0) // TODO maybe also copy twice
     {
         for (size_t i = 1; i < numParticles; i++)
         {
