@@ -176,7 +176,7 @@ void zIndexSortConstructionHandleSort(Particle* particles, int numParticles, flo
     // build handle structure
     for (size_t i = 0; i < numParticles; i++)
     {
-        sortedIndicesZI[i] = { particles[i].cellIndex, &particles[i] };
+        sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
     }
     // insertion sort the handle structure
     for (size_t i = 1; i < numParticles; i++)
@@ -255,7 +255,7 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
     }
     for (size_t i = 0; i < numParticles; i++)
     {
-        sortedIndicesZI[i] = { particles[i].cellIndex, &particles[i] };
+        sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i)};
     }
     for (size_t i = 1; i < numParticles; i++)
     {
@@ -277,13 +277,13 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
         Particle* sortedParticles = new Particle[numParticles];
         for (size_t i = 0; i < numParticles; i++)
         {
-            sortedParticles[i] = *sortedIndicesZI[i].reference;
+            sortedParticles[i] = particles[sortedIndicesZI[i].location];
         }
         copy(sortedParticles, sortedParticles + numParticles, particles);
         delete[] sortedParticles;
         for (size_t i = 0; i < numParticles; i++)
         {
-            sortedIndicesZI[i] = { particles[i].cellIndex, &particles[i] };
+            sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
         }
     }
     globalCounterZI += 1;
@@ -329,7 +329,7 @@ void zIndexSortQuery(Particle* particles, int numParticles, float h)
                         float distance = d.x * d.x + d.y * d.y;
                         if (distance < (2.0f * h) * (2.0f * h))
                         {
-                            particles[i].neighbors.push_back(&particles[k]);
+                            particles[i].neighbors.push_back(k);
                         }
                     }
                 }
@@ -369,7 +369,7 @@ void zIndexSortQueryImproved(Particle* particles, int numParticles, float h)
 
                         float dy = particles[i].position.y - particles[k].position.y;
                         if (dx * dx + dy * dy < h2) {
-                            particles[i].neighbors.push_back(&particles[k]);
+                            particles[i].neighbors.push_back(k);
                         }
                     }
                 }
@@ -382,9 +382,10 @@ void zIndexSortQueryHandleSort(Particle* particles, int numParticles, float h)
 {
     for (size_t i = 0; i < numParticles; i++)
     {
-        if (sortedIndicesZI[i].reference->isFluid)
+        int particleIndex = sortedIndicesZI[i].location;
+        if (particles[particleIndex].isFluid)
         {
-            sortedIndicesZI[i].reference->neighbors.clear();
+            particles[particleIndex].neighbors.clear();
 
             // mask to compute adjacent cell indices
             int cellIndices[][2] = {
@@ -396,8 +397,8 @@ void zIndexSortQueryHandleSort(Particle* particles, int numParticles, float h)
             // check particles in all adjacent cells
             for (size_t j = 0; j < 9; j++)
             {
-                int newIndexX = sortedIndicesZI[i].reference->k + cellIndices[j][0];
-                int newIndexY = sortedIndicesZI[i].reference->l + cellIndices[j][1];
+                int newIndexX = particles[particleIndex].k + cellIndices[j][0];
+                int newIndexY = particles[particleIndex].l + cellIndices[j][1];
 
                 // check for out of bounds cells
                 if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
@@ -410,11 +411,11 @@ void zIndexSortQueryHandleSort(Particle* particles, int numParticles, float h)
                     // compare with current particle
                     for (size_t k = getParticleIndicesZI.at(zIndex); k < getParticleIndicesZI.at(zIndex + 1); k++)
                     {
-                        Vector2f d = sortedIndicesZI[i].reference->position - sortedIndicesZI[k].reference->position;
+                        Vector2f d = particles[particleIndex].position - particles[sortedIndicesZI[k].location].position;
                         float distance = d.x * d.x + d.y * d.y;
                         if (distance < (2.0f * h) * (2.0f * h))
                         {
-                            sortedIndicesZI[i].reference->neighbors.push_back(sortedIndicesZI[k].reference);
+                            particles[particleIndex].neighbors.push_back(sortedIndicesZI[k].location);
                         }
                     }
                 }
@@ -439,14 +440,15 @@ void zIndexSortQueryHandleSortImproved(Particle* particles, int numParticles, fl
     for (size_t i = 0; i < numParticles; i++)
     {
         // reduce lookups
-        float posX = sortedIndicesZI[i].reference->position.x;
-        float posY = sortedIndicesZI[i].reference->position.y;
-        int cellIdentifierK = sortedIndicesZI[i].reference->k;
-        int cellIdentifierL = sortedIndicesZI[i].reference->l;
+        int particleIndex = sortedIndicesZI[i].location;
+        float posX = particles[particleIndex].position.x;
+        float posY = particles[particleIndex].position.y;
+        int cellIdentifierK = particles[particleIndex].k;
+        int cellIdentifierL = particles[particleIndex].l;
 
-        if (sortedIndicesZI[i].reference->isFluid)
+        if (particles[particleIndex].isFluid)
         {
-            sortedIndicesZI[i].reference->neighbors.clear();
+            particles[particleIndex].neighbors.clear();
 
             for (size_t j = 0; j < 9; j++)
             {
@@ -460,13 +462,13 @@ void zIndexSortQueryHandleSortImproved(Particle* particles, int numParticles, fl
                     for (size_t k = getParticleIndicesZI[zIndex]; k < getParticleIndicesZI[zIndex + 1]; k++) // at() to []
                     {
                         // exit earlier if particles are too far apart, excludes in x-direction half (18) the particles for perfect sampling
-                        dx = posX - sortedIndicesZI[k].reference->position.x;
+                        dx = posX - particles[sortedIndicesZI[k].location].position.x;
                         mult = dx * dx;
                         if (mult >= h2) continue;
 
-                        dy = posY - sortedIndicesZI[k].reference->position.y;
+                        dy = posY - particles[sortedIndicesZI[k].location].position.y;
                         if (mult + dy * dy < h2) {
-                            sortedIndicesZI[i].reference->neighbors.push_back(sortedIndicesZI[k].reference);
+                            particles[particleIndex].neighbors.push_back(sortedIndicesZI[k].location);
                         }
                     }
                 }
@@ -485,8 +487,8 @@ void zIndexSortQueryHandleSortOverCellsImproved(Particle* particles, int numPart
     {
         int index = getParticleIndicesZI[i];
         if (index >= numParticles) continue;
-        int currentK = sortedIndicesZI[index].reference->k;
-        int currentL = sortedIndicesZI[index].reference->l;
+        int currentK = particles[sortedIndicesZI[index].location].k;
+        int currentL = particles[sortedIndicesZI[index].location].l;
 
         // save computing the z cell index a 3/4 of the time
         uint64_t neighborCellsZIndices[] = {
@@ -505,9 +507,10 @@ void zIndexSortQueryHandleSortOverCellsImproved(Particle* particles, int numPart
         for (size_t j = index; j < getParticleIndicesZI[i + 1]; j++)
         {
             // Particle* current = sortedIndicesZI[j].reference; // not significant
-            if (sortedIndicesZI[j].reference->isFluid)
+            int particleIndex = sortedIndicesZI[j].location;
+            if (particles[particleIndex].isFluid)
             {
-                sortedIndicesZI[j].reference->neighbors.clear();
+                particles[particleIndex].neighbors.clear();
 
                 // over neighbor cells
                 for (size_t k = 0; k < 9; k++)
@@ -517,12 +520,12 @@ void zIndexSortQueryHandleSortOverCellsImproved(Particle* particles, int numPart
                         // over potential neighbors
                         for (size_t y = getParticleIndicesZI[neighborCellsZIndices[k]]; y < getParticleIndicesZI[neighborCellsZIndices[k] + 1]; y++)
                         {
-                            float dx = sortedIndicesZI[j].reference->position.x - sortedIndicesZI[y].reference->position.x;
+                            float dx = particles[particleIndex].position.x - particles[sortedIndicesZI[y].location].position.x;
                             if (dx * dx >= h2) continue;
 
-                            float dy = sortedIndicesZI[j].reference->position.y - sortedIndicesZI[y].reference->position.y;
+                            float dy = particles[particleIndex].position.y - particles[sortedIndicesZI[y].location].position.y;
                             if (dx * dx + dy * dy < h2) {
-                                sortedIndicesZI[j].reference->neighbors.push_back(sortedIndicesZI[y].reference);
+                                particles[particleIndex].neighbors.push_back(sortedIndicesZI[y].location);
                             }
                         }
                     }

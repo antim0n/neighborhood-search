@@ -4,7 +4,7 @@
 struct Handle
 {
 	int cellIndex;
-	Particle* reference;
+	int location;
 };
 
 extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy, cells

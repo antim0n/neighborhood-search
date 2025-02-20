@@ -117,7 +117,7 @@ void gridQuery(Particle* particles, int numFluidParticles, float h)
                     float distance = sqrt(d.x * d.x + d.y * d.y);
                     if (distance < 2.0f * h)
                     {
-                        particles[i].neighbors.push_back(cells.at(cellIndices[j]).at(k));
+                        particles[i].neighbors.push_back(cells.at(cellIndices[j]).at(k)->index);
                     }
                 }
             }
@@ -162,7 +162,7 @@ void gridQueryOverCells(float h)
                         float distance = d.x * d.x + d.y * d.y;
                         if (distance < (2.0f * h) * (2.0f * h))
                         {
-                            cells.at(i).at(j)->neighbors.push_back(cells.at(cellIndices[k]).at(y));
+                            cells.at(i).at(j)->neighbors.push_back(cells.at(cellIndices[k]).at(y)->index);
                         }
                     }
                 }
@@ -219,7 +219,7 @@ void gridQueryImproved(Particle* particles, int numFluidParticles, float h)
                     float dy = particles[i].position.y - cells[cellIndices[j]][k]->position.y;
                     float distance = dx * dx + dy * dy;
                     if (distance < h2) {
-                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]);
+                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]->index);
                     }
                 }
             }
@@ -264,7 +264,7 @@ void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float
                     float dy = particles[i].position.y - cells[cellIndices[j]][k]->position.y;
                     float distance = dx * dx + dy * dy;
                     if (distance < h2) {
-                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]);
+                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]->index);
                     }
                 }
             }

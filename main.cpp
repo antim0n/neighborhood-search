@@ -190,7 +190,7 @@ int main()
             // boundingBoxConstruction(); TODO
             // initialize(); precompute some global variable depending on the algorithm
 
-            fluidSolver.neighborSearchNN(2);
+            // fluidSolver.neighborSearchNN(2);
             
             // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // gridConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -211,7 +211,7 @@ int main()
 
             // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // compactHashingConstructionHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            compactHashingConstructionHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionZSortedImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -244,13 +244,13 @@ int main()
 
             // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
                 for (size_t j = 0; j < fluidSolver.particles[i].neighbors.size(); j++)
                 {
-                    cout << fluidSolver.particles[i].neighbors.at(j)->index << ", ";
+                    cout << fluidSolver.particles[fluidSolver.particles[i].neighbors.at(j)].index << ", ";
                 }
                 cout << endl;
             }*/
@@ -263,6 +263,10 @@ int main()
             fluidSolver.computeAccelerations();
             fluidSolver.updatePositions();
             // stopSimulation = true;
+
+            auto stop3 = high_resolution_clock::now();
+            auto duration3 = duration_cast<chrono::milliseconds>(stop3 - start);
+            cout << "Total: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
 
             if (gatherRuntimes)
             {

@@ -147,7 +147,7 @@ void FluidSolver::neighborSearchNN(float support)
                 float distance = sqrt(d.x * d.x + d.y * d.y);
                 if (distance < support * H)
                 {
-                    particles[i].neighbors.push_back(&particles[j]);
+                    particles[i].neighbors.push_back(j);
                 }
             }
         }
@@ -170,7 +170,7 @@ void FluidSolver::computeDensityAndPressure()
                 // sum over all neighbors
                 for (size_t j = 0; j < particles[i].neighbors.size(); j++)
                 {
-                    temp += particles[i].neighbors[j]->mass * cubicSpline(particles[i].position, particles[i].neighbors[j]->position);
+                    temp += particles[particles[i].neighbors[j]].mass * cubicSpline(particles[i].position, particles[particles[i].neighbors[j]].position);
                 }
             }
             particles[i].density = temp;
@@ -196,11 +196,11 @@ Vector2f FluidSolver::nonPressureAcceleration(Particle p)
     Vector2f SPH = Vector2f(0.f, 0.f);
     for (size_t i = 0; i < p.neighbors.size(); i++)
     {
-        Vector2f velD = p.velocity - p.neighbors[i]->velocity;
-        Vector2f posD = p.position - p.neighbors[i]->position;
+        Vector2f velD = p.velocity - particles[p.neighbors[i]].velocity;
+        Vector2f posD = p.position - particles[p.neighbors[i]].position;
         float val = (velD.x * posD.x + velD.y * posD.y) / (posD.x * posD.x + posD.y * posD.y + 0.01f * H * H);
-        Vector2f kernel = cubicSplineDerivative(p.position, p.neighbors[i]->position);
-        SPH += (p.neighbors[i]->mass / p.neighbors[i]->density) * val * kernel;
+        Vector2f kernel = cubicSplineDerivative(p.position, particles[p.neighbors[i]].position);
+        SPH += (particles[p.neighbors[i]].mass / particles[p.neighbors[i]].density) * val * kernel;
     }
     return 2.f * VISCOSITY * SPH + GRAVITY;
 }
@@ -211,16 +211,16 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
     for (size_t i = 0; i < p.neighbors.size(); i++)
     {
         float val = 0;
-        if (!p.neighbors[i]->isFluid) // boundary handling (mirroring)
+        if (!particles[p.neighbors[i]].isFluid) // boundary handling (mirroring)
         {
             val = p.pressure / (p.density * p.density) + p.pressure / (p.density * p.density);
         }
         else
         {
-            val = p.pressure / (p.density * p.density) + p.neighbors[i]->pressure / (p.neighbors[i]->density * p.neighbors[i]->density);
+            val = p.pressure / (p.density * p.density) + particles[p.neighbors[i]].pressure / (particles[p.neighbors[i]].density * particles[p.neighbors[i]].density);
         }
-        Vector2f kernel = cubicSplineDerivative(p.position, p.neighbors[i]->position);
-        SPH += p.neighbors[i]->mass * val * kernel;
+        Vector2f kernel = cubicSplineDerivative(p.position, particles[p.neighbors[i]].position);
+        SPH += particles[p.neighbors[i]].mass * val * kernel;
     }
     return -SPH;
 }

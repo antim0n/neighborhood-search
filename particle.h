@@ -21,5 +21,5 @@ struct Particle
     Vector2f position;
     Vector2f velocity;
     Vector2f acceleration;
-    vector<Particle*> neighbors;    // pointers to all current neighbors
+    vector<int> neighbors;    // pointers to all current neighbors
 };

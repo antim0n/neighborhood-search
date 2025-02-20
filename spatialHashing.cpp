@@ -3,7 +3,7 @@
 #include "spatialHashing.h"
 
 int hashTableSizeSH = 0;
-vector<Particle*>* hashTableSH = nullptr; // size: 2 * number of particles
+vector<Particle*>* hashTableSH = nullptr; // size: 2 * number of particles // TODO maybe unordered map?
 
 void spatialHashingConstruction(Particle* particles, int numParticles, float h)
 {
@@ -138,7 +138,7 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
                         bool duplicate = false;
                         for (size_t z = 0; z < particles[i].neighbors.size(); z++)
                         {
-                            if (particles[i].neighbors.at(z)->index == hashTableSH[hashIndex].at(k)->index)
+                            if (particles[particles[i].neighbors.at(z)].index == hashTableSH[hashIndex].at(k)->index)
                             {
                                 duplicate = true;
                                 break;
@@ -147,7 +147,7 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
                         if (!duplicate)
                         {
                             // add to neighbors
-                            particles[i].neighbors.push_back(hashTableSH[hashIndex].at(k));
+                            particles[i].neighbors.push_back(hashTableSH[hashIndex].at(k)->index);
                         }
                     }
                 }
@@ -198,7 +198,7 @@ void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, flo
                         bool duplicate = false;
                         for (size_t z = 0; z < particles[i].neighbors.size(); z++)
                         {
-                            if (particles[i].neighbors[z]->index == hashTableSH[hashIndex][k]->index)
+                            if (particles[particles[i].neighbors[z]].index == hashTableSH[hashIndex][k]->index)
                             {
                                 duplicate = true;
                                 break;
@@ -206,7 +206,7 @@ void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, flo
                         }
                         if (!duplicate)
                         {
-                            particles[i].neighbors.push_back(hashTableSH[hashIndex][k]);
+                            particles[i].neighbors.push_back(hashTableSH[hashIndex][k]->index);
                         }
                     }
                 }

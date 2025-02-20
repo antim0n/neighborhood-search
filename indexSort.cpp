@@ -305,7 +305,7 @@ void indexSortQuery(Particle* particles, int numParticles, float h) // no bounda
                         float distance = d.x * d.x + d.y * d.y;
                         if (distance < (2.0f * h) * (2.0f * h))
                         {
-                            particles[i].neighbors.push_back(&particles[k]);
+                            particles[i].neighbors.push_back(k);
                         }
                     }
                 }
@@ -352,7 +352,7 @@ void indexSortQueryImproved(Particle* particles, int numParticles, float h) // t
                         float dy = particles[i].position.y - particles[k].position.y;
                         float distance = dx * dx + dy * dy;
                         if (distance < h2) {
-                            particles[i].neighbors.push_back(&particles[k]);
+                            particles[i].neighbors.push_back(k);
                         }
                     }
                 }
@@ -394,7 +394,7 @@ void indexSortQueryKLImproved(Particle* particles, int numParticles, float h) //
                         float dy = particles[i].position.y - particles[k].position.y;
                         float distance = dx * dx + dy * dy;
                         if (distance < h2) {
-                            particles[i].neighbors.push_back(&particles[k]);
+                            particles[i].neighbors.push_back(k);
                         }
                     }
                 }
@@ -436,7 +436,7 @@ void indexSortQueryOverCells(Particle* particles, int numParticles, float h)
                             float distance = d.x * d.x + d.y * d.y;
                             if (distance < (2.0f * h) * (2.0f * h))
                             {
-                                particles[j].neighbors.push_back(&particles[y]);
+                                particles[j].neighbors.push_back(y);
                             }
                         }
                     }
@@ -486,7 +486,7 @@ void indexSortQueryOverCellsImproved(Particle* particles, int numParticles, floa
                             float dy = particles[j].position.y - particles[y].position.y;
                             float distance = dx * dx + dy * dy;
                             if (distance < h2) {
-                                particles[j].neighbors.push_back(&particles[y]);
+                                particles[j].neighbors.push_back(y);
                             }
                         }
                     }
