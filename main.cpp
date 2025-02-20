@@ -224,8 +224,8 @@ int main()
 
             // gridQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // gridQueryOverCells(fluidSolver.particles, fluidSolver.H);
-            gridQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            // gridQueryImprovedParallel(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            // gridQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            gridQueryImprovedParallel(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // indexSortQueryOverCells(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortQueryOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -394,6 +394,7 @@ int main()
     delete[] sortedParticlesI;
     delete[] hashTableSH;
     delete[] hashTableCH;
+    delete[] numNeighbors;
 
     return EXIT_SUCCESS;
 }

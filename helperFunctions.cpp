@@ -1,6 +1,7 @@
 #include "helperFunctions.h"
 
 float* boundingBox = new float[7];
+int* numNeighbors = nullptr;
 
 void boundingBoxConstruction(Particle* particles, int numParticles, float h) // TODO reduce calculations? if grid does not change
 {

@@ -227,18 +227,68 @@ void gridQueryImproved(Particle* particles, int numFluidParticles, float h)
     }
 }
 
-void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float h) // TODO vector pushback probably has to be change to a normal indexing
+void gridQueryCountNeighbors(Particle* particles, int numFluidParticles, float h) // only count do not store
 {
+    if (numNeighbors == nullptr)
+    {
+        numNeighbors = new int[numFluidParticles];
+    }
+    memset(&numNeighbors[0], 0, numFluidParticles * sizeof(numNeighbors[0]));
+
     int bboxX = boundingBox[4];
     int bboxY = boundingBox[5];
     float h2 = (2.0f * h) * (2.0f * h);
 
-    omp_set_num_threads(4);
+    #pragma omp parallel for
+    for (int i = 0; i < numFluidParticles; i++)
+    {
+        int index = particles[i].cellIndex;
+        int cellIndices[] = { particles[i].cellIndex,
+            index + 1,
+            index - 1,
+            index + bboxX,
+            index - bboxX,
+            index + bboxX + 1,
+            index + bboxX - 1,
+            index - bboxX + 1,
+            index - bboxX - 1
+        };
+
+        for (size_t j = 0; j < 9; j++)
+        {
+            if (cellIndices[j] >= 0 && cellIndices[j] < bboxX * bboxY)
+            {
+                for (size_t k = 0; k < cells[cellIndices[j]].size(); k++)
+                {
+                    float dx = particles[i].position.x - particles[cells[cellIndices[j]][k]].position.x;
+                    if (dx * dx >= h2) continue;
+
+                    float dy = particles[i].position.y - particles[cells[cellIndices[j]][k]].position.y;
+                    float distance = dx * dx + dy * dy;
+                    if (distance < h2) {
+                        numNeighbors[i] += 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float h)
+{
+    gridQueryCountNeighbors(particles, numFluidParticles, h);
+
+    int bboxX = boundingBox[4];
+    int bboxY = boundingBox[5];
+    float h2 = (2.0f * h) * (2.0f * h);
+
     #pragma omp parallel for // false sharing?
     for (int i = 0; i < numFluidParticles; i++)
     {
+        int counter = numNeighbors[i];
         particles[i].neighbors.clear();
-        particles[i].neighbors.reserve(14);
+        particles[i].neighbors.resize(counter);
+        counter--;
 
         int index = particles[i].cellIndex;
         int cellIndices[] = { particles[i].cellIndex,
@@ -264,7 +314,8 @@ void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float
                     float dy = particles[i].position.y - particles[cells[cellIndices[j]][k]].position.y;
                     float distance = dx * dx + dy * dy;
                     if (distance < h2) {
-                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]);
+                        particles[i].neighbors[counter] = cells[cellIndices[j]][k];
+                        counter--;
                     }
                 }
             }

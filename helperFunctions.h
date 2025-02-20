@@ -9,6 +9,13 @@ struct Handle
 
 extern float* boundingBox; // xmin, xmax, ymin, ymax, cellsx, cellsy, cells
 
+//struct AlignedAtomic
+//{
+//    alignas(64) atomic<int> counter = 0;
+//};
+
+extern int* numNeighbors;
+
 // mask to compute adjacent cell indices
 static int cellOffset[][2] = {
     {-1, 1}, {0, 1}, {1, 1},
