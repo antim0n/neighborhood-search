@@ -195,6 +195,9 @@ void zIndexSortConstructionHandleSort(Particle* particles, int numParticles, flo
     globalCounterZI += 1;
 }
 
+//bool comp(Particle a, Particle b) {
+//    return a.cellIndex < b.cellIndex;
+//}
 void zIndexSortConstructionHandleSortImproved(Particle* particles, int numParticles, float h)
 {
     int oldBoundingBoxSize = boundingBox[6];
@@ -235,8 +238,9 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
     {
         sortedIndicesZI = new Handle[numParticles];
     }
-    if (globalCounterZI == 0) // TODO maybe also copy twice
+    if (globalCounterZI == 0)
     {
+        // sort(particles, particles + numParticles, comp); // very slow -> but maybe nth step increasable?
         for (size_t i = 1; i < numParticles; i++)
         {
             Particle current = particles[i];
@@ -261,13 +265,14 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
         while (j >= 0 && current.cellIndex < sortedIndicesZI[j].cellIndex)
         {
             sortedIndicesZI[j + 1] = sortedIndicesZI[j];
-            j -= 1;
+            j = j - 1;
         }
         sortedIndicesZI[j + 1] = current;
     }
     // initial sort (executed only once)
     if (globalCounterZI == maxValZI)
     {
+        // sort(particles, particles + numParticles, comp); // similar performance
         // copy particles twice
         Particle* sortedParticles = new Particle[numParticles];
         for (size_t i = 0; i < numParticles; i++)

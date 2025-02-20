@@ -31,7 +31,7 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(100000);
+    FluidSolver fluidSolver(1000);
 
     int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
     const int WINDOW_WIDTH = 900;
@@ -91,7 +91,7 @@ int main()
     }
 
     /* initialize all particles */
-    fluidSolver.initializeFluidParticles(Vector2f(4.f * fluidSolver.H, 5.f * fluidSolver.H));
+    fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
     fluidSolver.initializeBoundaryParticles();
 
     /* simulation and rendering loop */
@@ -190,10 +190,11 @@ int main()
             // boundingBoxConstruction(); TODO
             // initialize(); precompute some global variable depending on the algorithm
 
-            // fluidSolver.neighborSearchNN(2);
+            fluidSolver.neighborSearchNN(2);
             
             // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // gridConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // gridConstructionImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // indexSortConstructionCountingSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortConstructionCompareSorting(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -213,7 +214,7 @@ int main()
             // compactHashingConstructionHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionZSortedImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<chrono::milliseconds>(stop - start);
@@ -224,6 +225,7 @@ int main()
             // gridQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // gridQueryOverCells(fluidSolver.H);
             // gridQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            // gridQueryImprovedParallel(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // indexSortQueryOverCells(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // indexSortQueryOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -241,7 +243,7 @@ int main()
             // spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)

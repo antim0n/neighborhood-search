@@ -1,3 +1,5 @@
+#include <omp.h>
+#include <iostream>
 #include "basicGrid.h"
 
 vector<vector<Particle*>> cells;
@@ -54,6 +56,35 @@ void gridConstructionImproved(Particle* particles, int numParticles, float h)
         int l = static_cast<int>((particles[i].position.y - offsetY) * invCellSize);
         particles[i].cellIndex = k + l * boundingBox[4];
         cells[particles[i].cellIndex].push_back(&particles[i]);
+    }
+}
+
+void gridConstructionImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    int numberOfCells = boundingBox[6];
+    if (cells.size() != numberOfCells) {
+        cells.resize(numberOfCells);
+    }
+    // #pragma omp parallel for
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        cells[i].clear();
+    }
+
+    // only reading should not result in race conditions
+    float invCellSize = 1.0f / (2.f * h);
+    float offsetX = boundingBox[0];
+    float offsetY = boundingBox[2];
+
+    // #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - offsetX) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - offsetY) * invCellSize);
+        particles[i].cellIndex = k + l * boundingBox[4];
+        cells[particles[i].cellIndex].push_back(&particles[i]); // only place where rave conditions may occur
     }
 }
 
@@ -184,6 +215,51 @@ void gridQueryImproved(Particle* particles, int numFluidParticles, float h)
                 {
                     float dx = particles[i].position.x - cells[cellIndices[j]][k]->position.x;
                     if (dx * dx >= h2) continue;  // Skip unnecessary checks if x-component is too large (not significant)
+
+                    float dy = particles[i].position.y - cells[cellIndices[j]][k]->position.y;
+                    float distance = dx * dx + dy * dy;
+                    if (distance < h2) {
+                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float h) // TODO vector pushback probably has to be change to a normal indexing
+{
+    int bboxX = boundingBox[4];
+    int bboxY = boundingBox[5];
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    omp_set_num_threads(4);
+    #pragma omp parallel for // false sharing?
+    for (int i = 0; i < numFluidParticles; i++)
+    {
+        particles[i].neighbors.clear();
+        particles[i].neighbors.reserve(14);
+
+        int index = particles[i].cellIndex;
+        int cellIndices[] = { particles[i].cellIndex,
+            index + 1,
+            index - 1,
+            index + bboxX,
+            index - bboxX,
+            index + bboxX + 1,
+            index + bboxX - 1,
+            index - bboxX + 1,
+            index - bboxX - 1
+        };
+
+        for (size_t j = 0; j < 9; j++)
+        {
+            if (cellIndices[j] >= 0 && cellIndices[j] < bboxX * bboxY)
+            {
+                for (size_t k = 0; k < cells[cellIndices[j]].size(); k++)
+                {
+                    float dx = particles[i].position.x - cells[cellIndices[j]][k]->position.x; // only read access for anywhere other than i
+                    if (dx * dx >= h2) continue;
 
                     float dy = particles[i].position.y - cells[cellIndices[j]][k]->position.y;
                     float distance = dx * dx + dy * dy;

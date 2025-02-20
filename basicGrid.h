@@ -13,8 +13,12 @@ void gridConstruction(Particle* particles, int numParticles, float h);
 /* */
 void gridConstructionImproved(Particle* particles, int numParticles, float h);
 /* */
+void gridConstructionImprovedParallel(Particle* particles, int numParticles, float h);
+/* */
 void gridQuery(Particle* particles, int numFluidParticles, float h);
 /* */
 void gridQueryOverCells(float h);
 /* */
 void gridQueryImproved(Particle* particles, int numFluidParticles, float h);
+/* */
+void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float h);
