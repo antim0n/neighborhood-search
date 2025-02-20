@@ -31,7 +31,7 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(1000);
+    FluidSolver fluidSolver(100000);
 
     int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
     const int WINDOW_WIDTH = 900;
@@ -193,7 +193,7 @@ int main()
             // fluidSolver.neighborSearchNN(2);
             
             // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // gridConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            gridConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // gridConstructionImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // indexSortConstructionCountingSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -207,7 +207,7 @@ int main()
             // zIndexSortConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            spatialHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // spatialHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -224,7 +224,7 @@ int main()
 
             // gridQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // gridQueryOverCells(fluidSolver.particles, fluidSolver.H);
-            // gridQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            gridQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // gridQueryImprovedParallel(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // indexSortQueryOverCells(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -240,7 +240,7 @@ int main()
             // zIndexSortQueryHandleSortOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            // spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);

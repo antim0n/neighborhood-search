@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
+#include <omp.h>
 #include "particle.h"
 
 using namespace std;
@@ -27,6 +28,10 @@ public:
     int numParticles;
 
     Particle* particles; // maybe change to vector
+
+    // precalculations
+    const float invH = 1.0f / H;
+    const float alpha = 5.f / (14.f * PI * H * H);
 
     // constructor
     FluidSolver(int size);

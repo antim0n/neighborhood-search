@@ -101,12 +101,13 @@ float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) const // 
 {
     Vector2f temp = positionA - positionB;
     float distance = sqrt(temp.x * temp.x + temp.y * temp.y);
-    float d = distance / H;
-
-    float alpha = 5.f / (14.f * PI * H * H); // 2D
+    float d = distance * invH;
 
     float t1 = max(1.f - d, 0.f);
     float t2 = max(2.f - d, 0.f);
+
+    // t1 = fmaxf(1.f - (temp.x * temp.x + temp.y * temp.y) * invH * invH, 0.f);
+    // t2 = fmaxf(4.f - (temp.x * temp.x + temp.y * temp.y) * invH * invH, 0.f);
 
     float w = alpha * (t2 * t2 * t2 - 4.f * t1 * t1 * t1);
 
@@ -121,9 +122,7 @@ Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positio
     {
         return Vector2f(0.f, 0.f);
     }
-    float d = distance / H;
-
-    float alpha = 5.f / (14.f * PI * H * H); // 2D
+    float d = distance * invH;
 
     float t1 = max(1 - d, 0.f);
     float t2 = max(2 - d, 0.f);
@@ -227,14 +226,13 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
 
 void FluidSolver::computeAccelerations()
 {
-    for (size_t i = 0; i < numParticles; i++)
+    // omp_set_num_threads(4); better but not with more threads
+    // #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
     {
         if (particles[i].isFluid)
         {
-            Vector2f aNonP = nonPressureAcceleration(particles[i]);
-            Vector2f aP = pressureAcceleration(particles[i]);
-
-            particles[i].acceleration = aNonP + aP;
+            particles[i].acceleration = nonPressureAcceleration(particles[i]) + pressureAcceleration(particles[i]);
         }
     }
 }
