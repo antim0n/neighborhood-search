@@ -259,14 +259,18 @@ int main()
             auto duration2 = duration_cast<chrono::milliseconds>(stop2 - start2);
             cout << "Query: " << duration2.count() << " " << chrono::duration<double>(duration2).count() << endl;
 
+            auto start3 = high_resolution_clock::now();
+
             fluidSolver.computeDensityAndPressure();
             fluidSolver.computeAccelerations();
             fluidSolver.updatePositions();
             // stopSimulation = true;
 
             auto stop3 = high_resolution_clock::now();
-            auto duration3 = duration_cast<chrono::milliseconds>(stop3 - start);
-            cout << "Total: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
+            auto duration3 = duration_cast<chrono::milliseconds>(stop3 - start3);
+            cout << "Physics: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
+            auto duration4 = duration_cast<chrono::milliseconds>(stop3 - start);
+            cout << "Total: " << duration4.count() << " " << chrono::duration<double>(duration4).count() << endl;
             cout << endl;
 
             if (gatherRuntimes)

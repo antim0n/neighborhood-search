@@ -155,7 +155,8 @@ void FluidSolver::neighborSearchNN(float support)
 
 void FluidSolver::computeDensityAndPressure()
 {
-    for (size_t i = 0; i < numParticles; i++)
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i < numParticles; i++)
     {
         if (particles[i].isFluid)
         {
@@ -180,7 +181,8 @@ void FluidSolver::computeDensityAndPressure()
 
 void FluidSolver::updatePositions()
 {
-    for (size_t i = 0; i < numParticles; i++)
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i < numParticles; i++)
     {
         if (particles[i].isFluid)
         {
@@ -226,8 +228,7 @@ Vector2f FluidSolver::pressureAcceleration(Particle p)
 
 void FluidSolver::computeAccelerations()
 {
-    // omp_set_num_threads(4); better but not with more threads
-    // #pragma omp parallel for
+    #pragma omp parallel for num_threads(4) // more threads is slower
     for (int i = 0; i < numParticles; i++)
     {
         if (particles[i].isFluid)
