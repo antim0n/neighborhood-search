@@ -207,11 +207,11 @@ int main()
             // zIndexSortConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // spatialHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            spatialHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             // compactHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingConstructionHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingConstructionHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionZSortedImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -223,7 +223,7 @@ int main()
             auto start2 = high_resolution_clock::now();
 
             // gridQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            // gridQueryOverCells(fluidSolver.H);
+            // gridQueryOverCells(fluidSolver.particles, fluidSolver.H);
             // gridQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // gridQueryImprovedParallel(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
@@ -240,11 +240,11 @@ int main()
             // zIndexSortQueryHandleSortOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
-            // spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
+            spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
 
             // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
@@ -267,6 +267,7 @@ int main()
             auto stop3 = high_resolution_clock::now();
             auto duration3 = duration_cast<chrono::milliseconds>(stop3 - start);
             cout << "Total: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
+            cout << endl;
 
             if (gatherRuntimes)
             {

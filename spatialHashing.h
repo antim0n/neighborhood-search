@@ -8,7 +8,7 @@
 
 using namespace std;
 
-extern vector<Particle*>* hashTableSH;
+extern vector<int>* hashTableSH;
 
 /* */
 void spatialHashingConstruction(Particle* particles, int numParticles, float h);

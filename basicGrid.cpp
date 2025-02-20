@@ -2,7 +2,7 @@
 #include <iostream>
 #include "basicGrid.h"
 
-vector<vector<Particle*>> cells;
+vector<vector<int>> cells;
 
 void gridConstruction(Particle* particles, int numParticles, float h)
 {
@@ -25,7 +25,7 @@ void gridConstruction(Particle* particles, int numParticles, float h)
         // particles[i].k = k;
         // particles[i].l = l;
         particles[i].cellIndex = k + l * boundingBox[4];
-        cells.at(particles[i].cellIndex).push_back(&particles[i]); // increased runtime in first iteration due to one-time allocations
+        cells.at(particles[i].cellIndex).push_back(i); // increased runtime in first iteration due to one-time allocations
     }
 }
 
@@ -55,7 +55,7 @@ void gridConstructionImproved(Particle* particles, int numParticles, float h)
         int k = static_cast<int>((particles[i].position.x - offsetX) * invCellSize);
         int l = static_cast<int>((particles[i].position.y - offsetY) * invCellSize);
         particles[i].cellIndex = k + l * boundingBox[4];
-        cells[particles[i].cellIndex].push_back(&particles[i]);
+        cells[particles[i].cellIndex].push_back(i);
     }
 }
 
@@ -84,7 +84,7 @@ void gridConstructionImprovedParallel(Particle* particles, int numParticles, flo
         int k = static_cast<int>((particles[i].position.x - offsetX) * invCellSize);
         int l = static_cast<int>((particles[i].position.y - offsetY) * invCellSize);
         particles[i].cellIndex = k + l * boundingBox[4];
-        cells[particles[i].cellIndex].push_back(&particles[i]); // only place where rave conditions may occur
+        cells[particles[i].cellIndex].push_back(i); // only place where rave conditions may occur
     }
 }
 
@@ -113,11 +113,11 @@ void gridQuery(Particle* particles, int numFluidParticles, float h)
             {
                 for (size_t k = 0; k < cells.at(cellIndices[j]).size(); k++)
                 {
-                    Vector2f d = particles[i].position - cells.at(cellIndices[j]).at(k)->position;
+                    Vector2f d = particles[i].position - particles[cells.at(cellIndices[j]).at(k)].position;
                     float distance = sqrt(d.x * d.x + d.y * d.y);
                     if (distance < 2.0f * h)
                     {
-                        particles[i].neighbors.push_back(cells.at(cellIndices[j]).at(k)->index);
+                        particles[i].neighbors.push_back(cells.at(cellIndices[j]).at(k));
                     }
                 }
             }
@@ -125,7 +125,7 @@ void gridQuery(Particle* particles, int numFluidParticles, float h)
     }
 }
 
-void gridQueryOverCells(float h)
+void gridQueryOverCells(Particle* particles, float h)
 {
     // a lot of empty cells but less cell index calculation
     // spatial locality probably worse
@@ -136,7 +136,7 @@ void gridQueryOverCells(float h)
             continue;
         }
 
-        int index = cells.at(i).at(0)->cellIndex;
+        int index = particles[cells.at(i).at(0)].cellIndex;
         int cellIndices[] = { index,
             index + 1,
             index - 1,
@@ -150,7 +150,7 @@ void gridQueryOverCells(float h)
 
         for (size_t j = 0; j < cells.at(i).size(); j++)
         {
-            cells.at(i).at(j)->neighbors.clear();
+            particles[cells.at(i).at(j)].neighbors.clear();
 
             for (size_t k = 0; k < 9; k++)
             {
@@ -158,11 +158,11 @@ void gridQueryOverCells(float h)
                 {
                     for (size_t y = 0; y < cells.at(cellIndices[k]).size(); y++)
                     {
-                        Vector2f d = cells.at(i).at(j)->position - cells.at(cellIndices[k]).at(y)->position;
+                        Vector2f d = particles[cells.at(i).at(j)].position - particles[cells.at(cellIndices[k]).at(y)].position;
                         float distance = d.x * d.x + d.y * d.y;
                         if (distance < (2.0f * h) * (2.0f * h))
                         {
-                            cells.at(i).at(j)->neighbors.push_back(cells.at(cellIndices[k]).at(y)->index);
+                            particles[cells.at(i).at(j)].neighbors.push_back(cells.at(cellIndices[k]).at(y));
                         }
                     }
                 }
@@ -213,13 +213,13 @@ void gridQueryImproved(Particle* particles, int numFluidParticles, float h)
                 // changed acces with .at() to direct indexing
                 for (size_t k = 0; k < cells[cellIndices[j]].size(); k++)
                 {
-                    float dx = particles[i].position.x - cells[cellIndices[j]][k]->position.x;
+                    float dx = particles[i].position.x - particles[cells[cellIndices[j]][k]].position.x;
                     if (dx * dx >= h2) continue;  // Skip unnecessary checks if x-component is too large (not significant)
 
-                    float dy = particles[i].position.y - cells[cellIndices[j]][k]->position.y;
+                    float dy = particles[i].position.y - particles[cells[cellIndices[j]][k]].position.y;
                     float distance = dx * dx + dy * dy;
                     if (distance < h2) {
-                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]->index);
+                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]);
                     }
                 }
             }
@@ -258,13 +258,13 @@ void gridQueryImprovedParallel(Particle* particles, int numFluidParticles, float
             {
                 for (size_t k = 0; k < cells[cellIndices[j]].size(); k++)
                 {
-                    float dx = particles[i].position.x - cells[cellIndices[j]][k]->position.x; // only read access for anywhere other than i
+                    float dx = particles[i].position.x - particles[cells[cellIndices[j]][k]].position.x; // only read access for anywhere other than i
                     if (dx * dx >= h2) continue;
 
-                    float dy = particles[i].position.y - cells[cellIndices[j]][k]->position.y;
+                    float dy = particles[i].position.y - particles[cells[cellIndices[j]][k]].position.y;
                     float distance = dx * dx + dy * dy;
                     if (distance < h2) {
-                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]->index);
+                        particles[i].neighbors.push_back(cells[cellIndices[j]][k]);
                     }
                 }
             }

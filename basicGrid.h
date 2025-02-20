@@ -17,7 +17,7 @@ void gridConstructionImprovedParallel(Particle* particles, int numParticles, flo
 /* */
 void gridQuery(Particle* particles, int numFluidParticles, float h);
 /* */
-void gridQueryOverCells(float h);
+void gridQueryOverCells(Particle* particles, float h);
 /* */
 void gridQueryImproved(Particle* particles, int numFluidParticles, float h);
 /* */

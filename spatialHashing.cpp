@@ -3,7 +3,7 @@
 #include "spatialHashing.h"
 
 int hashTableSizeSH = 0;
-vector<Particle*>* hashTableSH = nullptr; // size: 2 * number of particles // TODO maybe unordered map?
+vector<int>* hashTableSH = nullptr; // size: 2 * number of particles // TODO maybe unordered map?
 
 void spatialHashingConstruction(Particle* particles, int numParticles, float h)
 {
@@ -12,7 +12,7 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h)
     if (hashTableSH == nullptr)
     {
         hashTableSizeSH = 2 * numParticles;
-        hashTableSH = new vector<Particle*>[hashTableSizeSH];
+        hashTableSH = new vector<int>[hashTableSizeSH];
     }
 
     // reset/ remove old particles
@@ -34,7 +34,7 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h)
         // compute hash function i = h(c) or i = h(k, l, m)
         int hashIndex = hashFunction(k, l, hashTableSizeSH); // prevent integer overflow
         // store particles in array (hash table) at index i (array of vectors)
-        hashTableSH[hashIndex].push_back(&particles[i]); // store indicies instead of pointer?
+        hashTableSH[hashIndex].push_back(i); // store indicies instead of pointer?
     }
 }
 
@@ -71,7 +71,7 @@ void spatialHashingConstructionImproved(Particle* particles, int numParticles, f
         // hashTableSize = pow(2, static_cast<int>(log2(2 * numParticles) + 1)); // power of 2 chat gpt seems to prefer this for a "better modulo performance"
         // hashTableSize = 200000; // power of 10
         hashTableSizeSH = 2 * numParticles;
-        hashTableSH = new vector<Particle*>[hashTableSizeSH];
+        hashTableSH = new vector<int>[hashTableSizeSH];
     }
 
     for (size_t i = 0; i < hashTableSizeSH; i++)
@@ -94,7 +94,7 @@ void spatialHashingConstructionImproved(Particle* particles, int numParticles, f
         particles[i].l = l;
 
         int hashIndex = hashFunction(k, l, hashTableSizeSH);
-        hashTableSH[hashIndex].push_back(&particles[i]); // store indicies instead of pointer? is a lot slower
+        hashTableSH[hashIndex].push_back(i); // store indicies instead of pointer? is a lot slower
     }
 }
 
@@ -129,7 +129,7 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
                 for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
                 {
                     // compute distance
-                    Vector2f d = Vector2f(particles[i].position.x - hashTableSH[hashIndex].at(k)->position.x, particles[i].position.y - hashTableSH[hashIndex].at(k)->position.y);
+                    Vector2f d = Vector2f(particles[i].position.x - particles[hashTableSH[hashIndex].at(k)].position.x, particles[i].position.y - particles[hashTableSH[hashIndex].at(k)].position.y);
                     float distance = d.x * d.x + d.y * d.y;
                     // check if neighbor
                     if (distance < (2.0f * h) * (2.0f * h))
@@ -138,7 +138,7 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
                         bool duplicate = false;
                         for (size_t z = 0; z < particles[i].neighbors.size(); z++)
                         {
-                            if (particles[particles[i].neighbors.at(z)].index == hashTableSH[hashIndex].at(k)->index)
+                            if (particles[particles[i].neighbors.at(z)].index == particles[hashTableSH[hashIndex].at(k)].index)
                             {
                                 duplicate = true;
                                 break;
@@ -147,7 +147,7 @@ void spatialHashingQuery(Particle* particles, int numFluidParticles, float h)
                         if (!duplicate)
                         {
                             // add to neighbors
-                            particles[i].neighbors.push_back(hashTableSH[hashIndex].at(k)->index);
+                            particles[i].neighbors.push_back(hashTableSH[hashIndex].at(k));
                         }
                     }
                 }
@@ -182,9 +182,9 @@ void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, flo
 
                 for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
                 {
-                    dx = particles[i].position.x - hashTableSH[hashIndex][k]->position.x;
+                    dx = particles[i].position.x - particles[hashTableSH[hashIndex][k]].position.x;
                     // if (dx * dx >= h2) continue; // does not do much, removing the vector was what helped
-                    dy = particles[i].position.y - hashTableSH[hashIndex][k]->position.y;
+                    dy = particles[i].position.y - particles[hashTableSH[hashIndex][k]].position.y;
 
                     if (dx * dx + dy * dy < h2)
                     {
@@ -198,7 +198,7 @@ void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, flo
                         bool duplicate = false;
                         for (size_t z = 0; z < particles[i].neighbors.size(); z++)
                         {
-                            if (particles[particles[i].neighbors[z]].index == hashTableSH[hashIndex][k]->index)
+                            if (particles[particles[i].neighbors[z]].index == particles[hashTableSH[hashIndex][k]].index)
                             {
                                 duplicate = true;
                                 break;
@@ -206,7 +206,7 @@ void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, flo
                         }
                         if (!duplicate)
                         {
-                            particles[i].neighbors.push_back(hashTableSH[hashIndex][k]->index);
+                            particles[i].neighbors.push_back(hashTableSH[hashIndex][k]);
                         }
                     }
                 }
