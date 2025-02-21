@@ -31,9 +31,16 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(100000);
+    FluidSolver fluidSolver(1000);
 
+    /* initialize all particles */
+    fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
+    fluidSolver.initializeBoundaryParticles();
     int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
+
+    // fluidSolver.LoadMaze();
+    // int scaling = sqrt(fluidSolver.numBoundaryParticles) * 12;
+
     const int WINDOW_WIDTH = 900;
     const int WINDOW_HEIGHT = 900;
 
@@ -82,17 +89,33 @@ int main()
     /* Buttons */
     Button b1(Vector2i(50, 20), Vector2i(10, 50), Color::Green, Text("grid", font, 15));
     Button b2(Vector2i(60, 20), Vector2i(70, 50), Color::Green, Text("runtime", font, 15));
+    Button b3(Vector2i(70, 20), Vector2i(140, 50), Color::Green, Text("maze", font, 15));
 
     /* allocate memory for the particle shapes */
-    CircleShape* drawingCircles = new CircleShape[fluidSolver.numParticles];
-    if (!fluidSolver.particles || !drawingCircles)
+    int numVertices = 12;
+    VertexArray* drawingCircles = new VertexArray[fluidSolver.numParticles];
+    float toRadian = PI / 180.f;
+    for (size_t i = 0; i < fluidSolver.numParticles; i++)
+    {
+        VertexArray newCircle = VertexArray(TriangleFan, numVertices);
+        newCircle[0].position = Vector2f(0.f, 0.f);
+        newCircle[1].position = Vector2f(1.f * cos(0.f * toRadian), 1.f * sin(0.f * toRadian));
+        newCircle[2].position = Vector2f(1.f * cos(36.f * toRadian), 1.f * sin(36.f * toRadian));
+        newCircle[3].position = Vector2f(1.f * cos(72.f * toRadian), 1.f * sin(72.f * toRadian));
+        newCircle[4].position = Vector2f(1.f * cos(108.f * toRadian), 1.f * sin(108.f * toRadian));
+        newCircle[5].position = Vector2f(1.f * cos(144.f * toRadian), 1.f * sin(144.f * toRadian));
+        newCircle[6].position = Vector2f(1.f * cos(180.f * toRadian), 1.f * sin(180.f * toRadian));
+        newCircle[7].position = Vector2f(1.f * cos(216.f * toRadian), 1.f * sin(216.f * toRadian));
+        newCircle[8].position = Vector2f(1.f * cos(252.f * toRadian), 1.f * sin(252.f * toRadian));
+        newCircle[9].position = Vector2f(1.f * cos(288.f * toRadian), 1.f * sin(288.f * toRadian));
+        newCircle[10].position = Vector2f(1.f * cos(324.f * toRadian), 1.f * sin(324.f * toRadian));
+        newCircle[11].position = Vector2f(1.f * cos(360.f * toRadian), 1.f * sin(360.f * toRadian));
+        drawingCircles[i] = newCircle;
+    }
+    if (!fluidSolver.particles)
     {
         cout << "Memory allocation failed.\n";
     }
-
-    /* initialize all particles */
-    fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
-    fluidSolver.initializeBoundaryParticles();
 
     /* simulation and rendering loop */
     while (window.isOpen())
@@ -160,6 +183,10 @@ int main()
                             runtimeQuery.clear();
                             gatherRuntimes = true;
                         } 
+                    }
+                    if (b3.border.contains(Vector2i(Mouse::getPosition(window))))
+                    {
+                        // fluidSolver.LoadMaze(); // e.g. circle shapes would also have to be reallocated
                     }
                 }
                 break;
@@ -287,22 +314,30 @@ int main()
 
         for (size_t i = 0; i < fluidSolver.numParticles; i++)
         {
+            Transform particleTransform;
+
             float radius = (fluidSolver.H / 2.f) * (static_cast<float>(WINDOW_HEIGHT) / scaling);
             if (radius < 1.f)
             {
                 radius = 1.f;
             }
-            drawingCircles[i].setRadius(radius);    // h is defined as the "diameter", shouldnt be smaller than 1
-            drawingCircles[i].setPosition(particleToPixelCoord(fluidSolver.particles[i].position, WINDOW_WIDTH, WINDOW_HEIGHT, scaling)); // the shapes to be drawn have to be updated independently, scale
+            particleTransform.translate(particleToPixelCoord(fluidSolver.particles[i].position, WINDOW_WIDTH, WINDOW_HEIGHT, scaling)); // the shapes to be drawn have to be updated independently, scale
+            particleTransform.scale({ radius, radius }); // h is defined as the "diameter", shouldnt be smaller than 1
             if (fluidSolver.particles[i].isFluid)
             {
-                drawingCircles[i].setFillColor(Color::Blue);
+                for (size_t j = 0; j < numVertices; j++)
+                {
+                    drawingCircles[i][j].color = Color::Blue;
+                }
             }
             else
             {
-                drawingCircles[i].setFillColor(Color::White);
+                for (size_t j = 0; j < numVertices; j++)
+                {
+                    drawingCircles[i][j].color = Color::White;
+                }
             }
-            window.draw(drawingCircles[i]);
+            window.draw(drawingCircles[i], particleTransform);
         }
 
         // grid
@@ -384,6 +419,8 @@ int main()
         window.draw(b1.name);
         window.draw(b2.shape);
         window.draw(b2.name);
+        window.draw(b3.shape);
+        window.draw(b3.name);
 
         /* Display */
         window.display();

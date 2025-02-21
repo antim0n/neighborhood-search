@@ -43,6 +43,8 @@ public:
     /* */
     void initializeBoundaryParticles();
     /* */
+    void LoadMaze();
+    /* */
     void neighborSearchNN(float support);
     /* */
     void computeDensityAndPressure();

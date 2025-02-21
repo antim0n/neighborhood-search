@@ -1,5 +1,6 @@
 #include "fluidSolver.h"
 #include <iostream>
+#include <fstream>
 
 
 FluidSolver::FluidSolver(int size)
@@ -95,6 +96,54 @@ void FluidSolver::initializeBoundaryParticles()
         particles[i].k = -1;
         particles[i].l = -1;
     }
+}
+
+void FluidSolver::LoadMaze()
+{
+    const int length = 40336;
+    auto maze = new int[length][2];
+
+    ifstream infile("maze.txt");
+    if (!infile.is_open()) {
+        cout << "Error opening file!" << endl;
+    }
+    else {
+        cout << "Opened file!" << endl;
+    }
+
+    for (int i = 0; i < length; i++)
+        for (int j = 0; j < 2; j++)
+            infile >> maze[i][j];
+
+    infile.close();
+
+    delete[] particles;
+    numBoundaryParticles = length;
+    numParticles = numBoundaryParticles + numFluidParticles;
+    particles = new Particle[numParticles];
+
+    Vector2f offset = Vector2f(1000.f * H, 1430.f * H);
+    initializeFluidParticles(offset);
+
+    for (size_t i = numFluidParticles; i < numParticles; i++)
+    {
+        particles[i].cellIndex = -1;
+        particles[i].isFluid = false;
+        particles[i].density = REST_DENSITY;
+        particles[i].pressure = PRESSURE;
+        particles[i].mass = REST_DENSITY * H * H;
+        particles[i].velocity = Vector2f(0, 0);
+        particles[i].acceleration = Vector2f(0, 0);
+
+        float temp1 = H * (maze[i - numFluidParticles][1] + 5);
+        float temp2 = H * (maze[i - numFluidParticles][0] + 5);
+        particles[i].index = i;
+        particles[i].position = Vector2f(temp1, temp2);
+        particles[i].k = -1;
+        particles[i].l = -1;
+    }
+
+    delete[] maze;
 }
 
 float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) const // just slightly too much * 0.999138886f for alpha
