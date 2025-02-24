@@ -19,6 +19,9 @@ void indexSortConstructionCountingSortImproved(Particle* particles, int numParti
 /* */
 void indexSortConstructionInsertionSortImproved(Particle* particles, int numParticles, float h);
 /* */
+void indexSortConstructionCountingSortImprovedParallel(Particle* particles, int numParticles, float h);
+
+/* */
 void indexSortQuery(Particle* particles, int numParticles, float h);
 /* */
 void indexSortQueryImproved(Particle* particles, int numParticles, float h);
@@ -28,3 +31,5 @@ void indexSortQueryKLImproved(Particle* particles, int numParticles, float h);
 void indexSortQueryOverCells(Particle* particles, int numParticles, float h);
 /* */
 void indexSortQueryOverCellsImproved(Particle* particles, int numParticles, float h);
+/* */
+void indexSortQueryImprovedParallel(Particle* particles, int numParticles, float h);

@@ -15,8 +15,13 @@ void spatialHashingConstruction(Particle* particles, int numParticles, float h);
 /* */
 void spatialHashingConstructionImproved(Particle* particles, int numParticles, float h);
 /* */
+void spatialHashingConstructionImprovedParallel(Particle* particles, int numParticles, float h);
+
+/* */
 void spatialHashingQuery(Particle* particles, int numFluidParticles, float h);
 /* */
 void spatialHashingQueryImproved(Particle* particles, int numFluidParticles, float h);
 /* */
 void spatialHashingQueryOverCellsImproved(Particle* particles, int numFluidParticles, float h);
+/* */
+void spatialHashingQueryImprovedParallel(Particle* particles, int numFluidParticles, float h);

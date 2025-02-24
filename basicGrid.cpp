@@ -84,7 +84,7 @@ void gridConstructionImprovedParallel(Particle* particles, int numParticles, flo
         int k = static_cast<int>((particles[i].position.x - offsetX) * invCellSize);
         int l = static_cast<int>((particles[i].position.y - offsetY) * invCellSize);
         particles[i].cellIndex = k + l * boundingBox[4];
-        cells[particles[i].cellIndex].push_back(i); // only place where rave conditions may occur
+        cells[particles[i].cellIndex].push_back(i); // only place where race conditions may occur, push back bad for parallelizing
     }
 }
 

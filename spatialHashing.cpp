@@ -76,7 +76,7 @@ void spatialHashingConstructionImproved(Particle* particles, int numParticles, f
 
     for (size_t i = 0; i < hashTableSizeSH; i++)
     {
-        hashTableSH[i].clear(); // TODO clear does set the capacity to 0!!
+        hashTableSH[i].clear();
         // hashTableSH[i].reserve(4); // not a significant improvement as too much empty cells, too much slows down the query
     }
 
@@ -95,6 +95,36 @@ void spatialHashingConstructionImproved(Particle* particles, int numParticles, f
 
         int hashIndex = hashFunction(k, l, hashTableSizeSH);
         hashTableSH[hashIndex].push_back(i); // store indicies instead of pointer? is a lot slower
+    }
+}
+
+void spatialHashingConstructionImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+    if (hashTableSH == nullptr)
+    {
+        hashTableSizeSH = 2 * numParticles;
+        hashTableSH = new vector<int>[hashTableSizeSH];
+    }
+
+    for (size_t i = 0; i < hashTableSizeSH; i++)
+    {
+        hashTableSH[i].clear();
+    }
+
+    float invCellSize = 1.0f / (2.f * h);
+
+    // #pragma omp parallel for // not working as push back is not thread safe
+    for (int i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        int hashIndex = hashFunction(k, l, hashTableSizeSH);
+        hashTableSH[hashIndex].push_back(i);
     }
 }
 
@@ -222,4 +252,94 @@ void spatialHashingQueryOverCellsImproved(Particle* particles, int numFluidParti
     // an arbitrary number of particles from many cells could be in one hash cell
     // the cellindex would have to be stored and as soon as it differs the neighbor cells have to be recomputed
     // also as the hash table has many empty cells, iterating over them takes unnecessary time
+}
+
+void spatialHashingQueryCountNeighbors(Particle* particles, int numFluidParticles, float h)
+{
+    if (numNeighbors == nullptr)
+    {
+        numNeighbors = new int[numFluidParticles];
+    }
+    memset(&numNeighbors[0], 0, numFluidParticles * sizeof(numNeighbors[0]));
+
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    #pragma omp parallel for
+    for (int i = 0; i < numFluidParticles; i++)
+    {
+        for (size_t j = 0; j < 9; j++)
+        {
+            int newIndexX = particles[i].k + cellOffset[j][0];
+            int newIndexY = particles[i].l + cellOffset[j][1];
+
+            if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+            {
+                int hashIndex = hashFunction(newIndexX, newIndexY, hashTableSizeSH);
+
+                for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
+                {
+                    float dx = particles[i].position.x - particles[hashTableSH[hashIndex][k]].position.x;
+                    // if (dx * dx >= h2) continue; // does not do much, removing the vector was what helped
+                    float dy = particles[i].position.y - particles[hashTableSH[hashIndex][k]].position.y;
+
+                    if (dx * dx + dy * dy < h2)
+                    {
+                        numNeighbors[i] += 1; // not checking for duplicates shoul be ok
+                    }
+                }
+            }
+        }
+    }
+}
+
+void spatialHashingQueryImprovedParallel(Particle* particles, int numFluidParticles, float h)
+{
+    spatialHashingQueryCountNeighbors(particles, numFluidParticles, h);
+
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    #pragma omp parallel for
+    for (int i = 0; i < numFluidParticles; i++)
+    {
+        int counter = numNeighbors[i];
+        particles[i].neighbors.clear();
+        particles[i].neighbors.resize(counter);
+        counter--;
+
+        for (size_t j = 0; j < 9; j++)
+        {
+            int newIndexX = particles[i].k + cellOffset[j][0];
+            int newIndexY = particles[i].l + cellOffset[j][1];
+
+            if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+            {
+                int hashIndex = hashFunction(newIndexX, newIndexY, hashTableSizeSH);
+
+                for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
+                {
+                    float dx = particles[i].position.x - particles[hashTableSH[hashIndex][k]].position.x;
+                    // if (dx * dx >= h2) continue; // does not do much, removing the vector was what helped
+                    float dy = particles[i].position.y - particles[hashTableSH[hashIndex][k]].position.y;
+
+                    if (dx * dx + dy * dy < h2)
+                    {
+                        bool duplicate = false;
+                        for (size_t z = 0; z < particles[i].neighbors.size(); z++)
+                        {
+                            if (particles[particles[i].neighbors[z]].index == particles[hashTableSH[hashIndex][k]].index)
+                            {
+                                duplicate = true;
+                                break;
+                            }
+                        }
+                        if (!duplicate)
+                        {
+                            particles[i].neighbors[counter] = hashTableSH[hashIndex][k];
+                            counter--;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

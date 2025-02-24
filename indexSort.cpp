@@ -275,6 +275,42 @@ void indexSortConstructionCountingSortImproved(Particle* particles, int numParti
     copy(sortedParticlesI, sortedParticlesI + numParticles, particles);
 }
 
+void indexSortConstructionCountingSortImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    getParticleIndicesI.resize(boundingBox[6] + 1);
+    memset(&getParticleIndicesI[0], 0, (boundingBox[6] + 1) * sizeof(getParticleIndicesI[0]));
+
+    float invCellSize = 1.0f / (2.f * h);
+
+    // #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+        particles[i].k = k;
+        particles[i].l = l;
+        particles[i].cellIndex = k + l * boundingBox[4];
+        getParticleIndicesI[particles[i].cellIndex] += 1;
+    }
+
+    for (size_t i = 1; i < boundingBox[6] + 1; i++)
+    {
+        getParticleIndicesI[i] += getParticleIndicesI[i - 1];
+    }
+    if (sortedParticlesI == nullptr)
+    {
+        sortedParticlesI = new Particle[numParticles];
+    }
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i < numParticles; i++)
+    {
+        sortedParticlesI[--getParticleIndicesI[particles[i].cellIndex]] = particles[i];
+    }
+    copy(sortedParticlesI, sortedParticlesI + numParticles, particles);
+}
+
 void indexSortQuery(Particle* particles, int numParticles, float h) // no boundary particles included, too many adjacent cells at times, maybe check with klm
 {
     for (size_t i = 0; i < numParticles; i++)
@@ -327,7 +363,7 @@ void indexSortQueryImproved(Particle* particles, int numParticles, float h) // t
             particles[i].neighbors.clear();
             // particles[i].neighbors.reserve(14); // only makes first iteration better
   
-            int cellIndices[] = { // TODO try with k,l
+            int cellIndices[] = {
                 particles[i].cellIndex,
                 particles[i].cellIndex + 1,
                 particles[i].cellIndex - 1,
@@ -488,6 +524,104 @@ void indexSortQueryOverCellsImproved(Particle* particles, int numParticles, floa
                             if (distance < h2) {
                                 particles[j].neighbors.push_back(y);
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void indexSortQueryCountNeighbors(Particle* particles, int numParticles, float h) // only count do not store
+{
+    if (numNeighbors == nullptr)
+    {
+        numNeighbors = new int[numParticles];
+    }
+    memset(&numNeighbors[0], 0, numParticles * sizeof(numNeighbors[0]));
+
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
+    {
+        if (particles[i].isFluid)
+        {
+            int cellIndices[] = {
+                particles[i].cellIndex,
+                particles[i].cellIndex + 1,
+                particles[i].cellIndex - 1,
+                particles[i].cellIndex + boundingBox[4],
+                particles[i].cellIndex - boundingBox[4],
+                particles[i].cellIndex + boundingBox[4] + 1,
+                particles[i].cellIndex + boundingBox[4] - 1,
+                particles[i].cellIndex - boundingBox[4] + 1,
+                particles[i].cellIndex - boundingBox[4] - 1
+            };
+
+            for (size_t j = 0; j < 9; j++)
+            {
+                if (cellIndices[j] >= 0 && cellIndices[j] < boundingBox[6])
+                {
+                    for (size_t k = getParticleIndicesI[cellIndices[j]]; k < getParticleIndicesI[cellIndices[j] + 1]; k++)
+                    {
+                        float dx = particles[i].position.x - particles[k].position.x;
+                        if (dx * dx >= h2) continue;
+
+                        float dy = particles[i].position.y - particles[k].position.y;
+                        float distance = dx * dx + dy * dy;
+                        if (distance < h2) {
+                            numNeighbors[i] += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void indexSortQueryImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    indexSortQueryCountNeighbors(particles, numParticles, h);
+
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
+    {
+        if (particles[i].isFluid)
+        {
+            int counter = numNeighbors[i];
+            particles[i].neighbors.clear();
+            particles[i].neighbors.resize(counter);
+            counter--;
+
+            int cellIndices[] = {
+                particles[i].cellIndex,
+                particles[i].cellIndex + 1,
+                particles[i].cellIndex - 1,
+                particles[i].cellIndex + boundingBox[4],
+                particles[i].cellIndex - boundingBox[4],
+                particles[i].cellIndex + boundingBox[4] + 1,
+                particles[i].cellIndex + boundingBox[4] - 1,
+                particles[i].cellIndex - boundingBox[4] + 1,
+                particles[i].cellIndex - boundingBox[4] - 1
+            };
+
+            for (size_t j = 0; j < 9; j++)
+            {
+                if (cellIndices[j] >= 0 && cellIndices[j] < boundingBox[6])
+                {
+                    for (size_t k = getParticleIndicesI[cellIndices[j]]; k < getParticleIndicesI[cellIndices[j] + 1]; k++)
+                    {
+                        float dx = particles[i].position.x - particles[k].position.x;
+                        if (dx * dx >= h2) continue;
+
+                        float dy = particles[i].position.y - particles[k].position.y;
+                        float distance = dx * dx + dy * dy;
+                        if (distance < h2) {
+                            particles[i].neighbors[counter] = k;
+                            counter--;
                         }
                     }
                 }
