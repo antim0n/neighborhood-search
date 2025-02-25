@@ -1,8 +1,10 @@
 #include <iostream>
+#include <algorithm>
 #include "zIndexSort.h"
 
 vector<int> getParticleIndicesZI;
 Handle* sortedIndicesZI = nullptr;
+vector<pair<int, int>> getIndicesUsedCells;
 int maxValZI = 4;
 int globalCounterZI = 4;
 int requiredSize = 0;
@@ -293,6 +295,93 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
     }
 }
 
+void zIndexSortConstructionHandleSortImprovedMap(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    getIndicesUsedCells.reserve(boundingBox[6]);
+    getIndicesUsedCells.clear();
+
+    float invCellSize = 1.0f / (2.f * h);
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        particles[i].cellIndex = interleaveBits(k, l);
+    }
+
+    if (sortedIndicesZI == nullptr)
+    {
+        sortedIndicesZI = new Handle[numParticles];
+    }
+    if (globalCounterZI == 0)
+    {
+        for (size_t i = 1; i < numParticles; i++)
+        {
+            Particle current = particles[i];
+            int j = i - 1;
+            while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+            {
+                particles[j + 1] = particles[j];
+                j -= 1;
+            }
+            particles[j + 1] = current;
+        }
+    }
+    for (size_t i = 0; i < boundingBox[6]; i++)
+    {
+
+    }
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
+    }
+    for (size_t i = 1; i < numParticles; i++)
+    {
+        Handle current = sortedIndicesZI[i];
+        int j = i - 1;
+        while (j >= 0 && current.cellIndex < sortedIndicesZI[j].cellIndex)
+        {
+            sortedIndicesZI[j + 1] = sortedIndicesZI[j];
+            j = j - 1;
+        }
+        sortedIndicesZI[j + 1] = current;
+    }
+    if (globalCounterZI == maxValZI)
+    {
+        Particle* sortedParticles = new Particle[numParticles];
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedParticles[i] = particles[sortedIndicesZI[i].location];
+        }
+        copy(sortedParticles, sortedParticles + numParticles, particles);
+        delete[] sortedParticles;
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
+        }
+    }
+    int current = -1;
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        if (sortedIndicesZI[i].cellIndex != current)
+        {
+            current = sortedIndicesZI[i].cellIndex;
+            getIndicesUsedCells.push_back(make_pair(sortedIndicesZI[i].cellIndex, i));
+        }
+    }
+
+    globalCounterZI += 1;
+    if (globalCounterZI >= maxValZI)
+    {
+        globalCounterZI = 0;
+    }
+}
+
 void zIndexSortQuery(Particle* particles, int numParticles, float h)
 {
     for (size_t i = 0; i < numParticles; i++)
@@ -470,6 +559,71 @@ void zIndexSortQueryHandleSortImproved(Particle* particles, int numParticles, fl
                         if (mult + dy * dy < h2) {
                             particles[particleIndex].neighbors.push_back(sortedIndicesZI[k].location);
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct compare //https://www.geeksforgeeks.org/lower_bound-in-cpp/
+{
+    bool operator()(const pair<int, int>& value,
+        const int& key)
+    {
+        return (value.first < key);
+    }
+    bool operator()(const int& key,
+        const pair<int, int>& value)
+    {
+        return (key < value.first);
+    }
+};
+
+void zIndexSortQueryHandleSortImprovedMap(Particle* particles, int numParticles, float h)
+{
+    int h2 = (2.0f * h) * (2.0f * h);
+
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int particleIndex = sortedIndicesZI[i].location;
+        float posX = particles[particleIndex].position.x;
+        float posY = particles[particleIndex].position.y;
+        int cellIdentifierK = particles[particleIndex].k;
+        int cellIdentifierL = particles[particleIndex].l;
+
+        if (particles[particleIndex].isFluid)
+        {
+            particles[particleIndex].neighbors.clear();
+
+            for (size_t j = 0; j < 9; j++)
+            {
+                int newIndexX = cellIdentifierK + cellOffset[j][0];
+                int newIndexY = cellIdentifierL + cellOffset[j][1];
+
+                if (newIndexX >= 0 && newIndexX < boundingBox[4] && newIndexY >= 0 && newIndexY < boundingBox[5])
+                {
+                    int zIndex = interleaveBits(newIndexX, newIndexY);
+                    auto element = lower_bound(getIndicesUsedCells.begin(), getIndicesUsedCells.end(), zIndex, compare());
+                    if (element == getIndicesUsedCells.end() || element->first != zIndex) continue;
+
+                    // cout << zIndex << " - " << element->first << " " << element->second << " " << particles[sortedIndicesZI[element->second].location].cellIndex << endl;
+
+                    int k = element->second;
+                    while (sortedIndicesZI[k].cellIndex == zIndex)
+                    {
+                        float dx = posX - particles[sortedIndicesZI[k].location].position.x;
+                        if (dx * dx >= h2)
+                        {
+                            k++;
+                            continue;
+                        }
+
+                        float dy = posY - particles[sortedIndicesZI[k].location].position.y;
+                        if (dx * dx + dy * dy < h2) {
+                            particles[particleIndex].neighbors.push_back(sortedIndicesZI[k].location);
+                        }
+                        k++;
                     }
                 }
             }

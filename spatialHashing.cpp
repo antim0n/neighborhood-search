@@ -279,7 +279,7 @@ void spatialHashingQueryCountNeighbors(Particle* particles, int numFluidParticle
                 for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
                 {
                     float dx = particles[i].position.x - particles[hashTableSH[hashIndex][k]].position.x;
-                    // if (dx * dx >= h2) continue; // does not do much, removing the vector was what helped
+                    if (dx * dx >= h2) continue;
                     float dy = particles[i].position.y - particles[hashTableSH[hashIndex][k]].position.y;
 
                     if (dx * dx + dy * dy < h2)
@@ -318,7 +318,7 @@ void spatialHashingQueryImprovedParallel(Particle* particles, int numFluidPartic
                 for (size_t k = 0; k < hashTableSH[hashIndex].size(); k++)
                 {
                     float dx = particles[i].position.x - particles[hashTableSH[hashIndex][k]].position.x;
-                    // if (dx * dx >= h2) continue; // does not do much, removing the vector was what helped
+                    if (dx * dx >= h2) continue;
                     float dy = particles[i].position.y - particles[hashTableSH[hashIndex][k]].position.y;
 
                     if (dx * dx + dy * dy < h2)
