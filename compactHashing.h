@@ -29,8 +29,13 @@ void compactHashingConstructionHandleSort(Particle* particles, int numParticles,
 /* */
 void compactHashingConstructionHandleSortImproved(Particle* particles, int numParticles, float h);
 /* */
+void compactHashingConstructionHandleSortImprovedParallel(Particle* particles, int numParticles, float h);
+
+/* */
 void compactHashingQuery(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingQueryImproved(Particle* particles, int numParticles, float h);
 /* */
 void compactHashingQueryHashCollisionFlagImproved(Particle* particles, int numParticles, float h);
+/* */
+void compactHashingQueryImprovedParallel(Particle* particles, int numParticles, float h);

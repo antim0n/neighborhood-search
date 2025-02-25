@@ -1,5 +1,7 @@
-#include "compactHashing.h"
 #include <iostream>
+#include <unordered_set>
+#include <omp.h>
+#include "compactHashing.h"
 
 int handleArray[2000];
 int hashTableSizeCH = 2000;
@@ -391,6 +393,83 @@ void compactHashingConstructionHandleSortImproved(Particle* particles, int numPa
     globalCounterCH++;
 }
 
+void compactHashingConstructionHandleSortImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    boundingBoxConstruction(particles, numParticles, h);
+
+    if (hashTableCH == nullptr)
+    {
+        hashTableSizeCH = 10 * numParticles;
+        hashTableCH = new int[hashTableSizeCH];
+    }
+    memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int));
+
+    compactList.clear();
+    compactList.reserve(boundingBox[6] / 2);
+
+    int counter = 1;
+    float invCellSize = 1.f / (2.f * h);
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+        particles[i].cellIndex = interleaveBits(k, l);
+
+        int hashIndex = hashFunction(k, l, hashTableSizeCH);
+
+        if (hashTableCH[hashIndex] == 0)
+        {
+            hashTableCH[hashIndex] = counter;
+            compactList.push_back(vector<int>());
+            compactList[counter - 1].reserve(4);
+            compactList[counter - 1].push_back(i);
+            counter += 1;
+        }
+        else
+        {
+            compactList[hashTableCH[hashIndex] - 1].push_back(i);
+        }
+    }
+
+    if (globalCounterCH == maxValCH)
+    {
+        for (size_t i = 1; i < numParticles; i++)
+        {
+            Particle current = particles[i];
+            int j = i - 1;
+            while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+            {
+                particles[j + 1] = particles[j];
+                j -= 1;
+            }
+            particles[j + 1] = current;
+        }
+        int counter = 0;
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            int hashIndex = hashFunction(particles[i].k, particles[i].l, hashTableSizeCH);
+
+            if (hashTableCH[hashIndex] == 0)
+            {
+                hashTableCH[hashIndex] = counter;
+                compactList.push_back(vector<int>());
+                compactList[counter - 1].reserve(4);
+                compactList[counter - 1].push_back(i);
+                counter += 1;
+            }
+            else
+            {
+                compactList[hashTableCH[hashIndex] - 1].push_back(i);
+            }
+        }
+        globalCounterCH = 0;
+    }
+    globalCounterCH++;
+}
+
 void compactHashingQuery(Particle* particles, int numParticles, float h) // TODO Remove not needed function parameters
 {
     for (size_t i = 0; i < compactList.size(); i++) // list of used cells is queried
@@ -634,6 +713,138 @@ void compactHashingQueryHashCollisionFlagImproved(Particle * particles, int numP
                                     {
                                         particles[particleIndex].neighbors.push_back(neighborIndex);
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void compactHashingQueryCountNeighbors(Particle* particles, int numParticles, float h)
+{
+    if (numNeighbors == nullptr)
+    {
+        numNeighbors = new int[numParticles];
+    }
+    memset(&numNeighbors[0], 0, numParticles * sizeof(int));
+
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    // #pragma omp parallel for
+    for (int i = 0; i < compactList.size(); i++)
+    {
+        for (size_t j = 0; j < compactList[i].size(); j++)
+        {
+            int particleIndex = compactList[i][j];
+
+            if (particles[particleIndex].isFluid)
+            {
+                int currentK = particles[particleIndex].k;
+                int currentL = particles[particleIndex].l;
+                int cellIndices[] =
+                {
+                    { hashFunction(currentK + cellOffset[0][0], currentL + cellOffset[0][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[1][0], currentL + cellOffset[1][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[2][0], currentL + cellOffset[2][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[3][0], currentL + cellOffset[3][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[4][0], currentL + cellOffset[4][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[5][0], currentL + cellOffset[5][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[6][0], currentL + cellOffset[6][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[7][0], currentL + cellOffset[7][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
+                };
+
+                unordered_set<int> neighbors;
+                neighbors.reserve(20);
+
+                for (size_t k = 0; k < 9; k++)
+                {
+                    int usedCellIndex = hashTableCH[cellIndices[k]] - 1;
+
+                    if (usedCellIndex != -1)
+                    {
+                        for (size_t y = 0; y < compactList[usedCellIndex].size(); y++)
+                        {
+                            int neighborIndex = compactList[usedCellIndex][y];
+                            float dx = particles[particleIndex].position.x - particles[neighborIndex].position.x;
+                            float dy = particles[particleIndex].position.y - particles[neighborIndex].position.y;
+
+                            if (dx * dx + dy * dy < h2)
+                            {
+                                neighbors.insert(neighborIndex);
+                            }
+                        }
+                    }
+                }
+                numNeighbors[particleIndex] = neighbors.size();
+            }
+        }
+    }
+}
+
+void compactHashingQueryImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    compactHashingQueryCountNeighbors(particles, numParticles, h);
+
+    float h2 = (2.0f * h) * (2.0f * h);
+
+    // #pragma omp parallel for
+    for (int i = 0; i < compactList.size(); i++)
+    {
+        for (size_t j = 0; j < compactList[i].size(); j++)
+        {
+            int particleIndex = compactList[i][j];
+
+            if (particles[particleIndex].isFluid)
+            {
+                particles[particleIndex].neighbors.clear();
+                particles[particleIndex].neighbors.resize(numNeighbors[particleIndex]);
+                int counter = 0;
+
+                int currentK = particles[particleIndex].k;
+                int currentL = particles[particleIndex].l;
+                int cellIndices[] =
+                {
+                    { hashFunction(currentK + cellOffset[0][0], currentL + cellOffset[0][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[1][0], currentL + cellOffset[1][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[2][0], currentL + cellOffset[2][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[3][0], currentL + cellOffset[3][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[4][0], currentL + cellOffset[4][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[5][0], currentL + cellOffset[5][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[6][0], currentL + cellOffset[6][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[7][0], currentL + cellOffset[7][1], hashTableSizeCH) },
+                    { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
+                };
+
+                for (size_t k = 0; k < 9; k++)
+                {
+                    int usedCellIndex = hashTableCH[cellIndices[k]] - 1;
+
+                    if (usedCellIndex != -1)
+                    {
+                        for (size_t y = 0; y < compactList[usedCellIndex].size(); y++)
+                        {
+                            int neighborIndex = compactList[usedCellIndex][y];
+                            Vector2f d = particles[particleIndex].position - particles[neighborIndex].position;
+
+                            if (d.x * d.x + d.y * d.y < h2)
+                            {
+                                bool duplicate = false;
+                                for (size_t z = 0; z < particles[particleIndex].neighbors.size(); z++)
+                                {
+                                    if (particles[particles[particleIndex].neighbors[z]].index == particles[neighborIndex].index)
+                                    {
+                                        duplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!duplicate)
+                                {
+                                    particles[particleIndex].neighbors[counter] = neighborIndex;
+                                    counter++;
                                 }
                             }
                         }

@@ -163,6 +163,26 @@ float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) const // 
     return w;
 }
 
+//float FluidSolver::cubicSpline(Vector2f positionA, Vector2f positionB) const // a lot faster but kinda weird, probably not physically correct
+//{
+//    Vector2f temp = positionA - positionB;
+//    float squaredDistance = temp.x * temp.x + temp.y * temp.y;
+//    float dSquared = squaredDistance * invH * invH;
+//
+//    // Calculate without sqrt, using squared terms.
+//    float t1 = max(1.f - dSquared, 0.f);
+//    float t2 = max(2.f - dSquared, 0.f);
+//
+//    // Cubic terms
+//    float t1_cubed = t1 * t1 * t1;
+//    float t2_cubed = t2 * t2 * t2;
+//
+//    // Combine them
+//    float w = alpha * (t2_cubed - 4.f * t1_cubed);
+//
+//    return w;
+//}
+
 Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positionB)
 {
     Vector2f temp = positionA - positionB;
@@ -181,6 +201,33 @@ Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positio
 
     return w1;
 }
+
+//Vector2f FluidSolver::cubicSplineDerivative(Vector2f positionA, Vector2f positionB) // is faster but particles move differently
+//{
+//    Vector2f temp = positionA - positionB;
+//    float distanceSquared = temp.x * temp.x + temp.y * temp.y;
+//
+//    if (distanceSquared == 0.f)
+//    {
+//        return Vector2f(0.f, 0.f);
+//    }
+//
+//    float distance = sqrtf(distanceSquared);
+//    float d = distance * invH;
+//
+//    if (d >= 2.f) return Vector2f(0.f, 0.f);
+//
+//    float t1 = max(1.f - d, 0.f);
+//    float t2 = max(2.f - d, 0.f);
+//
+//    float invDH2 = 1.f / (d * H * H);
+//    float v = alpha * (-3.f * t2 * t2 + 12.f * t1 * t1);
+//
+//    Vector2f w1(temp.x * invDH2 * v, temp.y * invDH2 * v);
+//
+//    return w1;
+//}
+
 
 void FluidSolver::neighborSearchNN(float support)
 {
