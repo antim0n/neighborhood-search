@@ -1,12 +1,13 @@
 #include <iostream>
 #include <algorithm>
+#include <omp.h>
 #include "zIndexSort.h"
 
 vector<int> getParticleIndicesZI;
 Handle* sortedIndicesZI = nullptr;
 vector<pair<int, int>> getIndicesUsedCells;
-int maxValZI = 4;
-int globalCounterZI = 4;
+int maxValZI = 10; // larger with parallelization!
+int globalCounterZI = 10;
 int requiredSize = 0;
 
 void zIndexSortConstruction(Particle* particles, int numParticles, float h)
@@ -382,6 +383,92 @@ void zIndexSortConstructionHandleSortImprovedMap(Particle* particles, int numPar
     }
 }
 
+void zIndexSortConstructionHandleSortImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    int oldBoundingBoxSize = boundingBox[6];
+    boundingBoxConstruction(particles, numParticles, h);
+
+    if (oldBoundingBoxSize != boundingBox[6])
+    {
+        int biggerXY = max(boundingBox[4], boundingBox[5]);
+        biggerXY = pow(2, static_cast<int>(log2(biggerXY) + 1));
+        requiredSize = biggerXY * biggerXY + 1;
+        getParticleIndicesZI.resize(requiredSize);
+    }
+    memset(&getParticleIndicesZI[0], 0, requiredSize * sizeof(getParticleIndicesZI[0]));
+
+    float invCellSize = 1.0f / (2.f * h);
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        int k = static_cast<int>((particles[i].position.x - boundingBox[0]) * invCellSize);
+        int l = static_cast<int>((particles[i].position.y - boundingBox[2]) * invCellSize);
+
+        particles[i].k = k;
+        particles[i].l = l;
+
+        particles[i].cellIndex = interleaveBits(k, l);
+        getParticleIndicesZI[particles[i].cellIndex] += 1;
+    }
+    for (size_t i = 1; i < requiredSize; i++)
+    {
+        getParticleIndicesZI[i] += getParticleIndicesZI[i - 1];
+    }
+
+    if (sortedIndicesZI == nullptr)
+    {
+        sortedIndicesZI = new Handle[numParticles];
+    }
+    if (globalCounterZI == 0)
+    {
+        for (size_t i = 1; i < numParticles; i++)
+        {
+            Particle current = particles[i];
+            int j = i - 1;
+            while (j >= 0 && current.cellIndex < particles[j].cellIndex)
+            {
+                particles[j + 1] = particles[j];
+                j -= 1;
+            }
+            particles[j + 1] = current;
+        }
+    }
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
+    }
+    for (size_t i = 1; i < numParticles; i++)
+    {
+        Handle current = sortedIndicesZI[i];
+        getParticleIndicesZI[current.cellIndex] -= 1;
+        int j = i - 1;
+        while (j >= 0 && current.cellIndex < sortedIndicesZI[j].cellIndex)
+        {
+            sortedIndicesZI[j + 1] = sortedIndicesZI[j];
+            j = j - 1;
+        }
+        sortedIndicesZI[j + 1] = current;
+    }
+    if (globalCounterZI == maxValZI)
+    {
+        Particle* sortedParticles = new Particle[numParticles];
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedParticles[i] = particles[sortedIndicesZI[i].location];
+        }
+        copy(sortedParticles, sortedParticles + numParticles, particles);
+        delete[] sortedParticles;
+        for (size_t i = 0; i < numParticles; i++)
+        {
+            sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
+        }
+    }
+    globalCounterZI += 1;
+    if (globalCounterZI >= maxValZI)
+    {
+        globalCounterZI = 0;
+    }
+}
+
 void zIndexSortQuery(Particle* particles, int numParticles, float h)
 {
     for (size_t i = 0; i < numParticles; i++)
@@ -681,6 +768,107 @@ void zIndexSortQueryHandleSortOverCellsImproved(Particle* particles, int numPart
                             if (dx * dx + dy * dy < h2) {
                                 particles[particleIndex].neighbors.push_back(sortedIndicesZI[y].location);
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void zIndexSortQueryCountNeighbors(Particle* particles, int numParticles, float h)
+{
+    if (numNeighbors == nullptr)
+    {
+        numNeighbors = new int[numParticles];
+    }
+    memset(&numNeighbors[0], 0, numParticles * sizeof(numNeighbors[0]));
+
+    int h2 = (2.0f * h) * (2.0f * h);
+    int cellSizeX = boundingBox[4];
+    int cellSizeY = boundingBox[5];
+
+    #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
+    {
+        int particleIndex = sortedIndicesZI[i].location;
+        float posX = particles[particleIndex].position.x;
+        float posY = particles[particleIndex].position.y;
+        int cellIdentifierK = particles[particleIndex].k;
+        int cellIdentifierL = particles[particleIndex].l;
+
+        if (particles[particleIndex].isFluid)
+        {
+            for (size_t j = 0; j < 9; j++)
+            {
+                int newIndexX = cellIdentifierK + cellOffset[j][0];
+                int newIndexY = cellIdentifierL + cellOffset[j][1];
+
+                if (newIndexX >= 0 && newIndexX < cellSizeX && newIndexY >= 0 && newIndexY < cellSizeY)
+                {
+                    int zIndex = interleaveBits(newIndexX, newIndexY);
+
+                    for (size_t k = getParticleIndicesZI[zIndex]; k < getParticleIndicesZI[zIndex + 1]; k++)
+                    {
+                        float dx = posX - particles[sortedIndicesZI[k].location].position.x;
+                        if (dx * dx >= h2) continue;
+
+                        float dy = posY - particles[sortedIndicesZI[k].location].position.y;
+                        if (dx * dx + dy * dy < h2)
+                        {
+                            numNeighbors[particleIndex] += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void zIndexSortQueryHandleSortImprovedParallel(Particle* particles, int numParticles, float h)
+{
+    zIndexSortQueryCountNeighbors(particles, numParticles, h);
+
+    int h2 = (2.0f * h) * (2.0f * h);
+    int cellSizeX = boundingBox[4];
+    int cellSizeY = boundingBox[5];
+
+    #pragma omp parallel for
+    for (int i = 0; i < numParticles; i++)
+    {
+        int particleIndex = sortedIndicesZI[i].location;
+        float posX = particles[particleIndex].position.x;
+        float posY = particles[particleIndex].position.y;
+        int cellIdentifierK = particles[particleIndex].k;
+        int cellIdentifierL = particles[particleIndex].l;
+
+        if (particles[particleIndex].isFluid)
+        {
+            particles[particleIndex].neighbors.clear();
+
+            int counter = numNeighbors[particleIndex];
+            particles[particleIndex].neighbors.clear();
+            particles[particleIndex].neighbors.resize(counter);
+            counter--;
+
+            for (size_t j = 0; j < 9; j++)
+            {
+                int newIndexX = cellIdentifierK + cellOffset[j][0];
+                int newIndexY = cellIdentifierL + cellOffset[j][1];
+
+                if (newIndexX >= 0 && newIndexX < cellSizeX && newIndexY >= 0 && newIndexY < cellSizeY)
+                {
+                    int zIndex = interleaveBits(newIndexX, newIndexY);
+
+                    for (size_t k = getParticleIndicesZI[zIndex]; k < getParticleIndicesZI[zIndex + 1]; k++)
+                    {
+                        float dx = posX - particles[sortedIndicesZI[k].location].position.x;
+                        if (dx * dx >= h2) continue;
+
+                        float dy = posY - particles[sortedIndicesZI[k].location].position.y;
+                        if (dx * dx + dy * dy < h2) {
+                            particles[particleIndex].neighbors[counter] = sortedIndicesZI[k].location;
+                            counter--;
                         }
                     }
                 }

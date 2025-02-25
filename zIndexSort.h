@@ -21,6 +21,8 @@ void zIndexSortConstructionHandleSort(Particle* particles, int numParticles, flo
 void zIndexSortConstructionHandleSortImproved(Particle* particles, int numParticles, float h);
 /* */
 void zIndexSortConstructionHandleSortImprovedMap(Particle* particles, int numParticles, float h);
+/* */
+void zIndexSortConstructionHandleSortImprovedParallel(Particle* particles, int numParticles, float h);
 
 /* */
 void zIndexSortQuery(Particle* particles, int numParticles, float h);
@@ -34,3 +36,5 @@ void zIndexSortQueryHandleSortImproved(Particle* particles, int numParticles, fl
 void zIndexSortQueryHandleSortOverCellsImproved(Particle* particles, int numParticles, float h);
 /* */
 void zIndexSortQueryHandleSortImprovedMap(Particle* particles, int numParticles, float h);
+/* */
+void zIndexSortQueryHandleSortImprovedParallel(Particle* particles, int numParticles, float h);
