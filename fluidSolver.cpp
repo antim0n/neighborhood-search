@@ -333,3 +333,76 @@ void FluidSolver::computeAccelerations()
         }
     }
 }
+
+void FluidSolver::computeDensityAndPressureCLL()
+{
+    for (int i = 0; i < numParticles; i++)
+    {
+        if (particles[i].isFluid)
+        {
+            vector<int> neighbors = unpack(particles[i].compressedNeighbors, numNeighbors[i]);
+            float temp = 0;
+            if (neighbors.size() == 1)
+            {
+                temp = REST_DENSITY;
+            }
+            else
+            {
+                // sum over all neighbors
+                for (size_t j = 0; j < neighbors.size(); j++)
+                {
+                    temp += particles[neighbors[j]].mass * cubicSpline(particles[i].position, particles[neighbors[j]].position);
+                }
+            }
+            particles[i].density = temp;
+            particles[i].pressure = STIFFNESS * (max((temp / REST_DENSITY) - 1.f, 0.f)); // problem with dividing by 0
+        }
+    }
+}
+
+void FluidSolver::computeAccelerationsCLL()
+{
+    for (int i = 0; i < numParticles; i++)
+    {
+        if (particles[i].isFluid)
+        {
+            particles[i].acceleration = nonPressureAccelerationCLL(particles[i], i) + pressureAccelerationCLL(particles[i], i);
+        }
+    }
+}
+
+Vector2f FluidSolver::nonPressureAccelerationCLL(Particle p, int index)
+{
+    Vector2f SPH = Vector2f(0.f, 0.f);
+    vector<int> neighbors = unpack(p.compressedNeighbors, numNeighbors[index]);
+    for (size_t i = 0; i < neighbors.size(); i++)
+    {
+        Vector2f velD = p.velocity - particles[neighbors[i]].velocity;
+        Vector2f posD = p.position - particles[neighbors[i]].position;
+        float val = (velD.x * posD.x + velD.y * posD.y) / (posD.x * posD.x + posD.y * posD.y + 0.01f * H * H);
+        Vector2f kernel = cubicSplineDerivative(p.position, particles[neighbors[i]].position);
+        SPH += (particles[neighbors[i]].mass / particles[neighbors[i]].density) * val * kernel;
+    }
+    return 2.f * VISCOSITY * SPH + GRAVITY;
+}
+
+Vector2f FluidSolver::pressureAccelerationCLL(Particle p, int index)
+{
+    Vector2f SPH = Vector2f(0.f, 0.f);
+    vector<int> neighbors = unpack(p.compressedNeighbors, numNeighbors[index]);
+    for (size_t i = 0; i < neighbors.size(); i++)
+    {
+        float val = 0;
+        if (!particles[neighbors[i]].isFluid) // boundary handling (mirroring)
+        {
+            val = p.pressure / (p.density * p.density) + p.pressure / (p.density * p.density);
+        }
+        else
+        {
+            val = p.pressure / (p.density * p.density) + particles[neighbors[i]].pressure / (particles[neighbors[i]].density * particles[neighbors[i]].density);
+        }
+        Vector2f kernel = cubicSplineDerivative(p.position, particles[neighbors[i]].position);
+        SPH += particles[neighbors[i]].mass * val * kernel;
+    }
+    return -SPH;
+}

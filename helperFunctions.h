@@ -31,3 +31,7 @@ unsigned int hashFunction(int cellIndexX, int cellIndexY, unsigned int sizeHashT
 uint64_t spreadBits(uint32_t x);
 /* */
 uint64_t interleaveBits(uint32_t x, uint32_t y);
+/* */
+vector<unsigned char> compress(vector<int> particles);
+/* */
+vector<int> unpack(vector<unsigned char> packedBytes, int numNeighbors);

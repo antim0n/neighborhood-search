@@ -11,6 +11,7 @@
 #include "zIndexSort.h"
 #include "spatialHashing.h"
 #include "compactHashing.h"
+#include "cellLinkedList.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -31,7 +32,7 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(10000);
+    FluidSolver fluidSolver(1000);
 
     /* initialize all particles */
     fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
@@ -246,7 +247,9 @@ int main()
             // compactHashingConstructionZSortedImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+
+            cellLinkedListConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<chrono::milliseconds>(stop - start);
@@ -281,7 +284,9 @@ int main()
             // compactHashingQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            compactHashingQueryImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // compactHashingQueryImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+
+            cellLinkedListQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
@@ -298,9 +303,12 @@ int main()
 
             auto start3 = high_resolution_clock::now();
 
-            fluidSolver.computeDensityAndPressure();
-            fluidSolver.computeAccelerations();
+            // fluidSolver.computeDensityAndPressure();
+            // fluidSolver.computeAccelerations();
+            fluidSolver.computeDensityAndPressureCLL();
+            fluidSolver.computeAccelerationsCLL();
             fluidSolver.updatePositions();
+
             // stopSimulation = true;
 
             auto stop3 = high_resolution_clock::now();
@@ -446,6 +454,8 @@ int main()
     delete[] hashTableSH;
     delete[] hashTableCH;
     delete[] numNeighbors;
+    delete[] compactCellIndex;
+    delete[] compactReference;
 
     return EXIT_SUCCESS;
 }

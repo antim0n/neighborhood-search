@@ -22,4 +22,5 @@ struct Particle
     Vector2f velocity;
     Vector2f acceleration;
     vector<int> neighbors;    // pointers to all current neighbors
+    vector<unsigned char> compressedNeighbors;
 };

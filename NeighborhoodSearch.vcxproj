@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClCompile Include="basicGrid.cpp" />
     <ClCompile Include="button.cpp" />
+    <ClCompile Include="cellLinkedList.cpp" />
     <ClCompile Include="compactHashing.cpp" />
     <ClCompile Include="fluidSolver.cpp" />
     <ClCompile Include="helperFunctions.cpp" />
@@ -147,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="basicGrid.h" />
     <ClInclude Include="button.h" />
+    <ClInclude Include="cellLinkedList.h" />
     <ClInclude Include="compactHashing.h" />
     <ClInclude Include="fluidSolver.h" />
     <ClInclude Include="helperFunctions.h" />

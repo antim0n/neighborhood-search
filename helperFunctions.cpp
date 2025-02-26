@@ -1,4 +1,6 @@
 #include "helperFunctions.h"
+#include <iostream>
+#include <bitset>
 
 float* boundingBox = new float[7];
 int* numNeighbors = nullptr;
@@ -61,4 +63,115 @@ uint64_t spreadBits(uint32_t x) {
 // Function to interleave bits of two 32-bit integers x and y
 uint64_t interleaveBits(uint32_t x, uint32_t y) {
     return (spreadBits(x) | (spreadBits(y) << 1));
+}
+
+bool comp(int a, int b) {
+    return a < b;
+}
+
+vector<unsigned char> compress(vector<int> particles)
+{
+    sort(particles.begin(), particles.end(), comp);
+
+    vector<unsigned char> byteStream;
+    byteStream.reserve(4);
+
+    unsigned char firstElement[4];
+    memcpy(firstElement, &particles[0], sizeof(int));
+    for (int j = 3; j >= 0; --j) {
+        byteStream.push_back(firstElement[j]);
+    }
+
+    unsigned char packedByte = 0;
+    int shiftAmount = 6;
+
+    vector<unsigned char> data;
+
+    for (size_t i = 1; i < particles.size(); ++i) {
+        unsigned char value = 0;
+        int delta = particles[i] - particles[i - 1] - 1;
+
+        if (delta == 0) {
+            value = 0b00;  // 00
+        }
+        else if (delta == 1) {
+            value = 0b01;  // 01
+        }
+        else if (delta >= 2 && delta < 256) {
+            value = 0b10;  // 10
+            data.push_back(static_cast<unsigned char>(delta));
+        }
+        else if (delta >= 256) {
+            value = 0b11;  // 11
+            unsigned char deltaBytes[4];
+            memcpy(deltaBytes, &delta, sizeof(int));
+            for (int j = 3; j >= 0; --j) {
+                data.push_back(deltaBytes[j]);
+            }
+        }
+
+        packedByte |= (value << shiftAmount);
+        shiftAmount -= 2;
+
+        if (shiftAmount < 0) {
+            byteStream.push_back(packedByte);
+            packedByte = 0;
+            shiftAmount = 6;
+        }
+    }
+
+    if (shiftAmount < 6) {
+        byteStream.push_back(packedByte);
+    }
+
+    byteStream.insert(byteStream.end(), data.begin(), data.end());
+
+    return byteStream;
+}
+
+vector<int> unpack(vector<unsigned char> packedBytes, int numNeighbors)
+{
+    vector<int> unpackedValues;
+    unpackedValues.reserve(numNeighbors);
+
+    unpackedValues.push_back(int((packedBytes[0]) << 24 | (packedBytes[1]) << 16 | (packedBytes[2]) << 8 | (packedBytes[3])));
+
+    int dataBytesLookedUp = 0;
+    int numControlBytes = ceil(ceil((2.f * (float(numNeighbors) - 1.f)) / 8.f));
+    for (size_t i = 0; i < numControlBytes; i++)
+    {
+        // Extract each 2-bit value from the byte
+        for (int shiftAmount = 6; shiftAmount >= 0; shiftAmount -= 2)
+        {
+            unsigned char value = (packedBytes[i + 4] >> shiftAmount) & 0b11;  // Mask the last 2 bits
+
+            // Convert the 2-bit value back to the original input range
+            if (value == 0b00) {
+                unpackedValues.push_back(0);
+            }
+            else if (value == 0b01) {
+                unpackedValues.push_back(1);
+            }
+            else if (value == 0b10) {
+                unpackedValues.push_back(int(packedBytes[dataBytesLookedUp + numControlBytes + 4]));
+                dataBytesLookedUp++;
+            }
+            else if (value == 0b11) {
+                int x = dataBytesLookedUp + numControlBytes + 4;
+                unpackedValues.push_back(int((packedBytes[x]) << 24 | (packedBytes[x + 1]) << 16 | (packedBytes[x + 2]) << 8 | (packedBytes[x + 3])));
+                dataBytesLookedUp += 4;
+            }
+
+            if (unpackedValues.size() >= numNeighbors) {
+                break;  // Stop once we've unpacked the expected number of values
+            }
+        }
+    }
+
+    for (size_t i = 1; i < numNeighbors; i++)
+    {
+        unpackedValues[i] += unpackedValues[i - 1] + 1;
+    }
+
+    return unpackedValues;
 }

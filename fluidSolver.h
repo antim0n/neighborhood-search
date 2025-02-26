@@ -5,6 +5,7 @@
 #include <SFML/System.hpp>
 #include <omp.h>
 #include "particle.h"
+#include "helperFunctions.h"
 
 using namespace std;
 using namespace sf;
@@ -60,4 +61,13 @@ public:
     Vector2f nonPressureAcceleration(Particle p);
     /* */
     Vector2f pressureAcceleration(Particle p);
+
+    /* */
+    void computeDensityAndPressureCLL();
+    /* */
+    void computeAccelerationsCLL();
+    /* */
+    Vector2f nonPressureAccelerationCLL(Particle p, int index);
+    /* */
+    Vector2f pressureAccelerationCLL(Particle p, int index);
 };
