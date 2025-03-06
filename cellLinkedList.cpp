@@ -1,5 +1,6 @@
 #include "cellLinkedList.h"
 #include <iostream>
+#include <omp.h>
 
 int lengthCompactList = 0;
 int* compactCellIndex = nullptr;
@@ -81,7 +82,9 @@ void cellLinkedListQueryCountNeighbors(Particle* particles, int numParticles, fl
     memset(&numNeighbors[0], 0, numParticles * sizeof(numNeighbors[0]));
 
     float h2 = (2.0f * h) * (2.0f * h);
-    for (size_t i = 0; i < lengthCompactList; i++)
+
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i < lengthCompactList; i++)
     {
         for (size_t j = compactReference[i]; j < compactReference[i + 1]; j++)
         {
@@ -129,13 +132,15 @@ void cellLinkedListQuery(Particle* particles, int numParticles, float h) // is p
     cellLinkedListQueryCountNeighbors(particles, numParticles, h);
 
     float h2 = (2.0f * h) * (2.0f * h);
-    for (size_t i = 0; i < lengthCompactList; i++)
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i < lengthCompactList; i++)
     {
         for (size_t j = compactReference[i]; j < compactReference[i + 1]; j++)
         {
             if (particles[j].isFluid)
             {
                 vector<int> neighbors;
+                neighbors.reserve(numNeighbors[j]);
 
                 for (size_t h = 0; h < 9; h++)
                 {
