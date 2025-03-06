@@ -32,15 +32,15 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(1000);
+    FluidSolver fluidSolver(100000);
 
     /* initialize all particles */
-    fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
-    fluidSolver.initializeBoundaryParticles();
-    int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
+    //fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
+    //fluidSolver.initializeBoundaryParticles();
+    //int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
 
-    // fluidSolver.LoadMaze();
-    // int scaling = sqrt(fluidSolver.numBoundaryParticles) * 12;
+    fluidSolver.LoadMaze();
+    int scaling = sqrt(fluidSolver.numBoundaryParticles) * 14;
 
     const int WINDOW_WIDTH = 900;
     const int WINDOW_HEIGHT = 900;
@@ -235,7 +235,7 @@ int main()
             // zIndexSortConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortConstructionHandleSortImprovedMap(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // zIndexSortConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            zIndexSortConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -249,7 +249,7 @@ int main()
             // compactHashingConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
-            cellLinkedListConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // cellLinkedListConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<chrono::milliseconds>(stop - start);
@@ -275,7 +275,7 @@ int main()
             // zIndexSortQueryHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQueryHandleSortOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQueryHandleSortImprovedMap(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            // zIndexSortQueryHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            zIndexSortQueryHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
@@ -286,7 +286,7 @@ int main()
             // compactHashingQueryHashCollisionFlagImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // compactHashingQueryImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
-            cellLinkedListQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // cellLinkedListQuery(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
 
             /*for (size_t i = 0; i < fluidSolver.numFluidParticles; i++)
             {
@@ -303,10 +303,10 @@ int main()
 
             auto start3 = high_resolution_clock::now();
 
-            // fluidSolver.computeDensityAndPressure();
-            // fluidSolver.computeAccelerations();
-            fluidSolver.computeDensityAndPressureCLL();
-            fluidSolver.computeAccelerationsCLL();
+            fluidSolver.computeDensityAndPressure();
+            fluidSolver.computeAccelerations();
+            // fluidSolver.computeDensityAndPressureCLL();
+            // fluidSolver.computeAccelerationsCLL();
             fluidSolver.updatePositions();
 
             // stopSimulation = true;

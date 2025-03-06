@@ -118,14 +118,31 @@ void FluidSolver::LoadMaze()
     infile.close();
 
     delete[] particles;
+    int extraBoundaryParticles = 5200;
     numBoundaryParticles = length;
-    numParticles = numBoundaryParticles + numFluidParticles;
+    numParticles = numBoundaryParticles + numFluidParticles + extraBoundaryParticles;
     particles = new Particle[numParticles];
 
-    Vector2f offset = Vector2f(1000.f * H, 1430.f * H);
-    initializeFluidParticles(offset);
+    int size = static_cast<int>(sqrt(numFluidParticles));
+    for (size_t i = 0; i < numFluidParticles; i++)
+    {
+        particles[i].cellIndex = -1;
+        particles[i].isFluid = true;
+        particles[i].density = REST_DENSITY;
+        particles[i].pressure = PRESSURE;
+        particles[i].mass = REST_DENSITY * H * H;
+        particles[i].velocity = Vector2f(0, 0);
+        particles[i].acceleration = Vector2f(0, 0);
 
-    for (size_t i = numFluidParticles; i < numParticles; i++)
+        float temp1 = H * (i % 1560 + 300 + 2);
+        float temp2 = H * (i / 1560 + 200 + 1564);
+        particles[i].index = i;
+        particles[i].position = Vector2f(temp1, temp2);
+        particles[i].k = -1;
+        particles[i].l = -1;
+    }
+
+    for (size_t i = numFluidParticles; i < numBoundaryParticles + numFluidParticles; i++)
     {
         particles[i].cellIndex = -1;
         particles[i].isFluid = false;
@@ -135,8 +152,44 @@ void FluidSolver::LoadMaze()
         particles[i].velocity = Vector2f(0, 0);
         particles[i].acceleration = Vector2f(0, 0);
 
-        float temp1 = H * (maze[i - numFluidParticles][1] + 5);
-        float temp2 = H * (maze[i - numFluidParticles][0] + 5);
+        float temp1 = H * (maze[i - numFluidParticles][1] + 300);
+        float temp2 = H * (maze[i - numFluidParticles][0] + 200);
+        particles[i].index = i;
+        particles[i].position = Vector2f(temp1, temp2);
+        particles[i].k = -1;
+        particles[i].l = -1;
+    }
+
+    for (size_t i = numBoundaryParticles + numFluidParticles; i < numFluidParticles + numBoundaryParticles + extraBoundaryParticles / 2; i++)
+    {
+        particles[i].cellIndex = -1;
+        particles[i].isFluid = false;
+        particles[i].density = REST_DENSITY;
+        particles[i].pressure = PRESSURE;
+        particles[i].mass = REST_DENSITY * H * H;
+        particles[i].velocity = Vector2f(0, 0);
+        particles[i].acceleration = Vector2f(0, 0);
+
+        float temp1 = H * (((i - (numBoundaryParticles + numFluidParticles)) / 1300) + 300);
+        float temp2 = H * (((i - (numBoundaryParticles + numFluidParticles)) % 1300) + 1564 + 200);
+        particles[i].index = i;
+        particles[i].position = Vector2f(temp1, temp2);
+        particles[i].k = -1;
+        particles[i].l = -1;
+    }
+
+    for (size_t i = numFluidParticles + numBoundaryParticles + extraBoundaryParticles / 2; i < numParticles; i++)
+    {
+        particles[i].cellIndex = -1;
+        particles[i].isFluid = false;
+        particles[i].density = REST_DENSITY;
+        particles[i].pressure = PRESSURE;
+        particles[i].mass = REST_DENSITY * H * H;
+        particles[i].velocity = Vector2f(0, 0);
+        particles[i].acceleration = Vector2f(0, 0);
+
+        float temp1 = H * (((i - (numFluidParticles + numBoundaryParticles + extraBoundaryParticles / 2)) / 1300) + 300 + 1563);
+        float temp2 = H * (((i - (numFluidParticles + numBoundaryParticles + extraBoundaryParticles / 2)) % 1300) + 1564 + 200);
         particles[i].index = i;
         particles[i].position = Vector2f(temp1, temp2);
         particles[i].k = -1;
