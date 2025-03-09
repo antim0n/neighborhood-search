@@ -573,7 +573,7 @@ void compactHashingQueryImproved(Particle* particles, int numParticles, float h)
                                 bool duplicate = false;
                                 for (size_t z = 0; z < particles[particleIndex].neighbors.size(); z++)
                                 {
-                                    if (particles[particles[particleIndex].neighbors[z]].index == particles[neighborIndex].index)
+                                    if (particles[particleIndex].neighbors[z] == neighborIndex)
                                     {
                                         duplicate = true;
                                         break;
@@ -642,7 +642,7 @@ void compactHashingQueryHashCollisionFlagImproved(Particle * particles, int numP
                                     bool duplicate = false;
                                     for (size_t z = 0; z < particles[particleIndex].neighbors.size(); z++)
                                     {
-                                        if (particles[particles[particleIndex].neighbors[z]].index == particles[neighborIndex].index)
+                                        if (particles[particleIndex].neighbors[z] == neighborIndex)
                                         {
                                             duplicate = true;
                                             break;
@@ -703,7 +703,7 @@ void compactHashingQueryHashCollisionFlagImproved(Particle * particles, int numP
                                     bool duplicate = false;
                                     for (size_t z = 0; z < particles[particleIndex].neighbors.size(); z++)
                                     {
-                                        if (particles[particles[particleIndex].neighbors[z]].index == particles[neighborIndex].index)
+                                        if (particles[particleIndex].neighbors[z] == neighborIndex)
                                         {
                                             duplicate = true;
                                             break;
@@ -733,7 +733,7 @@ void compactHashingQueryCountNeighbors(Particle* particles, int numParticles, fl
 
     float h2 = (2.0f * h) * (2.0f * h);
 
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < compactList.size(); i++)
     {
         for (size_t j = 0; j < compactList[i].size(); j++)
@@ -757,8 +757,8 @@ void compactHashingQueryCountNeighbors(Particle* particles, int numParticles, fl
                     { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
                 };
 
-                unordered_set<int> neighbors;
-                neighbors.reserve(20);
+                unordered_set<int> neighbors; // TODO here hash collison flag?
+                neighbors.reserve(15);
 
                 for (size_t k = 0; k < 9; k++)
                 {
@@ -791,7 +791,7 @@ void compactHashingQueryImprovedParallel(Particle* particles, int numParticles, 
 
     float h2 = (2.0f * h) * (2.0f * h);
 
-    // #pragma omp parallel for
+    // #pragma omp parallel for schedule(static, 1000)
     for (int i = 0; i < compactList.size(); i++)
     {
         for (size_t j = 0; j < compactList[i].size(); j++)
@@ -802,7 +802,6 @@ void compactHashingQueryImprovedParallel(Particle* particles, int numParticles, 
             {
                 particles[particleIndex].neighbors.clear();
                 particles[particleIndex].neighbors.resize(numNeighbors[particleIndex]);
-                int counter = 0;
 
                 int currentK = particles[particleIndex].k;
                 int currentL = particles[particleIndex].l;
@@ -819,6 +818,7 @@ void compactHashingQueryImprovedParallel(Particle* particles, int numParticles, 
                     { hashFunction(currentK + cellOffset[8][0], currentL + cellOffset[8][1], hashTableSizeCH) }
                 };
 
+                int counter = 0;
                 for (size_t k = 0; k < 9; k++)
                 {
                     int usedCellIndex = hashTableCH[cellIndices[k]] - 1;
@@ -828,14 +828,15 @@ void compactHashingQueryImprovedParallel(Particle* particles, int numParticles, 
                         for (size_t y = 0; y < compactList[usedCellIndex].size(); y++)
                         {
                             int neighborIndex = compactList[usedCellIndex][y];
-                            Vector2f d = particles[particleIndex].position - particles[neighborIndex].position;
+                            float dx = particles[particleIndex].position.x - particles[neighborIndex].position.x;
+                            float dy = particles[particleIndex].position.y - particles[neighborIndex].position.y;
 
-                            if (d.x * d.x + d.y * d.y < h2)
+                            if (dx * dx + dy * dy < h2)
                             {
                                 bool duplicate = false;
                                 for (size_t z = 0; z < particles[particleIndex].neighbors.size(); z++)
                                 {
-                                    if (particles[particles[particleIndex].neighbors[z]].index == particles[neighborIndex].index)
+                                    if (particles[particleIndex].neighbors[z] == neighborIndex)
                                     {
                                         duplicate = true;
                                         break;
