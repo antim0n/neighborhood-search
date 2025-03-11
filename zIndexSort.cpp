@@ -6,9 +6,10 @@
 vector<int> getParticleIndicesZI;
 Handle* sortedIndicesZI = nullptr;
 vector<pair<int, int>> getIndicesUsedCells;
-int maxValZI = 10; // larger with parallelization!
-int globalCounterZI = 10;
+int maxValZI = 50; // larger with parallelization!
+int globalCounterZI = 50;
 int requiredSize = 0;
+Particle* sortedParticles = nullptr;
 
 void zIndexSortConstruction(Particle* particles, int numParticles, float h)
 {
@@ -418,7 +419,7 @@ void zIndexSortConstructionHandleSortImprovedParallel(Particle* particles, int n
     {
         sortedIndicesZI = new Handle[numParticles];
     }
-    if (globalCounterZI == 0)
+    /*if (globalCounterZI == 0)
     {
         for (size_t i = 1; i < numParticles; i++)
         {
@@ -431,7 +432,7 @@ void zIndexSortConstructionHandleSortImprovedParallel(Particle* particles, int n
             }
             particles[j + 1] = current;
         }
-    }
+    }*/
     for (size_t i = 0; i < numParticles; i++)
     {
         sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
@@ -450,20 +451,22 @@ void zIndexSortConstructionHandleSortImprovedParallel(Particle* particles, int n
     }
     if (globalCounterZI == maxValZI)
     {
-        Particle* sortedParticles = new Particle[numParticles];
+        if (sortedParticles == nullptr)
+        {
+            sortedParticles = new Particle[numParticles];
+        }
         for (size_t i = 0; i < numParticles; i++)
         {
             sortedParticles[i] = particles[sortedIndicesZI[i].location];
         }
         copy(sortedParticles, sortedParticles + numParticles, particles);
-        delete[] sortedParticles;
         for (size_t i = 0; i < numParticles; i++)
         {
             sortedIndicesZI[i] = { particles[i].cellIndex, static_cast<int>(i) };
         }
     }
     globalCounterZI += 1;
-    if (globalCounterZI >= maxValZI)
+    if (globalCounterZI > maxValZI)
     {
         globalCounterZI = 0;
     }

@@ -10,6 +10,7 @@ using namespace std;
 
 // z-index sort
 extern Handle* sortedIndicesZI;
+extern Particle* sortedParticles;
 
 /* */
 void zIndexSortConstruction(Particle* particles, int numParticles, float h);

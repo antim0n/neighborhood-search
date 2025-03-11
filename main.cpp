@@ -32,15 +32,15 @@ static Vector2f pixelToParticleCoord(Vector2f pixelPos, int windowWidth, int win
 
 int main()
 {
-    FluidSolver fluidSolver(100000);
+    FluidSolver fluidSolver(1000);
 
     /* initialize all particles */
-    //fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
-    //fluidSolver.initializeBoundaryParticles();
-    //int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
+    fluidSolver.initializeFluidParticles(Vector2f(sqrt(fluidSolver.numFluidParticles) / 2 * fluidSolver.H, 5.f * fluidSolver.H));
+    fluidSolver.initializeBoundaryParticles();
+    int scaling = sqrt(fluidSolver.numFluidParticles) * 3; // bigger -> smaller picture
 
-    fluidSolver.LoadMaze();
-    int scaling = sqrt(fluidSolver.numBoundaryParticles) * 14;
+    /*fluidSolver.LoadMaze();
+    int scaling = sqrt(fluidSolver.numBoundaryParticles) * 12;*/
 
     const int WINDOW_WIDTH = 900;
     const int WINDOW_HEIGHT = 900;
@@ -67,6 +67,7 @@ int main()
     // performance average
     vector<chrono::milliseconds> runtimeConstruction;
     vector<chrono::milliseconds> runtimeQuery;
+    vector<chrono::milliseconds> runtimeTotal;
 
     /* load font and prepare text */
     Font font;
@@ -165,7 +166,7 @@ int main()
                     {
                         if (gatherRuntimes)
                         {
-                            cout << "End collecting ..." << endl;
+                            cout << "End collecting ------------------------" << endl;
 
                             auto duration = accumulate(runtimeConstruction.begin(), runtimeConstruction.end(), decltype(runtimeConstruction)::value_type(0));
                             duration = duration / runtimeConstruction.size();
@@ -175,13 +176,20 @@ int main()
                             duration2 = duration2 / runtimeQuery.size();
                             cout << "Query: " << duration2.count() << " " << chrono::duration<double>(duration2).count() << endl;
 
+                            auto duration3 = accumulate(runtimeTotal.begin(), runtimeTotal.end(), decltype(runtimeTotal)::value_type(0));
+                            duration3 = duration3 / runtimeTotal.size();
+                            cout << "Total: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
+                            cout << runtimeTotal.size() << endl;
+                            cout << endl;
+
                             gatherRuntimes = false;
                         }
                         else
                         {
-                            cout << "Start collecting ..." << endl;
+                            cout << "Start collecting ------------------------" << endl;
                             runtimeConstruction.clear();
                             runtimeQuery.clear();
+                            runtimeTotal.clear();
                             gatherRuntimes = true;
                         } 
                     }
@@ -218,7 +226,7 @@ int main()
             // boundingBoxConstruction(); TODO
             // initialize(); precompute some global variable depending on the algorithm
 
-            // fluidSolver.neighborSearchNN(2);
+            fluidSolver.neighborSearchNN(2);
             
             // gridConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // gridConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -235,7 +243,7 @@ int main()
             // zIndexSortConstructionHandleSort(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortConstructionHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortConstructionHandleSortImprovedMap(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            zIndexSortConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortConstructionHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingConstruction(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // spatialHashingConstructionImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
@@ -275,7 +283,7 @@ int main()
             // zIndexSortQueryHandleSortImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQueryHandleSortOverCellsImproved(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             // zIndexSortQueryHandleSortImprovedMap(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
-            zIndexSortQueryHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
+            // zIndexSortQueryHandleSortImprovedParallel(fluidSolver.particles, fluidSolver.numParticles, fluidSolver.H);
             
             // spatialHashingQuery(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
             // spatialHashingQueryImproved(fluidSolver.particles, fluidSolver.numFluidParticles, fluidSolver.H);
@@ -312,8 +320,8 @@ int main()
             // stopSimulation = true;
 
             auto stop3 = high_resolution_clock::now();
-            auto duration3 = duration_cast<chrono::milliseconds>(stop3 - start3);
-            cout << "Physics: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
+            // auto duration3 = duration_cast<chrono::milliseconds>(stop3 - start3);
+            // cout << "Physics: " << duration3.count() << " " << chrono::duration<double>(duration3).count() << endl;
             auto duration4 = duration_cast<chrono::milliseconds>(stop3 - start);
             cout << "Total: " << duration4.count() << " " << chrono::duration<double>(duration4).count() << endl;
             cout << endl;
@@ -322,6 +330,7 @@ int main()
             {
                 runtimeConstruction.push_back(duration);
                 runtimeQuery.push_back(duration2);
+                runtimeTotal.push_back(duration4);
             }
         }
 
@@ -435,8 +444,8 @@ int main()
         /* buttons */
         window.draw(b1.shape);
         window.draw(b1.name);
-        window.draw(b2.shape);
-        window.draw(b2.name);
+         window.draw(b2.shape);
+         window.draw(b2.name);
         window.draw(b3.shape);
         window.draw(b3.name);
 
@@ -456,6 +465,7 @@ int main()
     delete[] numNeighbors;
     delete[] compactCellIndex;
     delete[] compactReference;
+    delete[] sortedParticles;
 
     return EXIT_SUCCESS;
 }
