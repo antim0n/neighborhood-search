@@ -6,8 +6,8 @@
 vector<int> getParticleIndicesZI;
 Handle* sortedIndicesZI = nullptr;
 vector<pair<int, int>> getIndicesUsedCells;
-int maxValZI = 50; // larger with parallelization!
-int globalCounterZI = 50;
+int maxValZI = 6; // larger with parallelization!
+int globalCounterZI = 6;
 int requiredSize = 0;
 Particle* sortedParticles = nullptr;
 
@@ -105,7 +105,7 @@ void zIndexSortConstructionImproved(Particle* particles, int numParticles, float
         getParticleIndicesZI[i] += getParticleIndicesZI[i - 1];
     }
 
-    for (size_t i = 1; i < numParticles; i++)
+    /*for (size_t i = 1; i < numParticles; i++)
     {
         Particle current = particles[i];
         getParticleIndicesZI[current.cellIndex] -= 1;
@@ -116,7 +116,18 @@ void zIndexSortConstructionImproved(Particle* particles, int numParticles, float
             j -= 1;
         }
         particles[j + 1] = current;
+    }*/
+
+    if (sortedParticles == nullptr)
+    {
+        sortedParticles = new Particle[numParticles];
     }
+    for (size_t i = 0; i < numParticles; i++)
+    {
+        getParticleIndicesZI[particles[i].cellIndex] -= 1;
+        sortedParticles[getParticleIndicesZI[particles[i].cellIndex]] = particles[i];
+    }
+    copy(sortedParticles, sortedParticles + numParticles, particles);
 }
 
 void zIndexSortConstructionHandleSort(Particle* particles, int numParticles, float h)
@@ -245,7 +256,7 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
     if (globalCounterZI == 0)
     {
         // sort(particles, particles + numParticles, comp); // very slow -> but maybe nth step increasable?
-        for (size_t i = 1; i < numParticles; i++)
+        /*for (size_t i = 1; i < numParticles; i++)
         {
             Particle current = particles[i];
             int j = i - 1;
@@ -255,7 +266,7 @@ void zIndexSortConstructionHandleSortImproved(Particle* particles, int numPartic
                 j -= 1;
             }
             particles[j + 1] = current;
-        }
+        }*/
     }
     for (size_t i = 0; i < numParticles; i++)
     {
@@ -791,7 +802,7 @@ void zIndexSortQueryCountNeighbors(Particle* particles, int numParticles, float 
     int cellSizeX = boundingBox[4];
     int cellSizeY = boundingBox[5];
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(9)
     for (int i = 0; i < numParticles; i++)
     {
         int particleIndex = sortedIndicesZI[i].location;
@@ -836,7 +847,7 @@ void zIndexSortQueryHandleSortImprovedParallel(Particle* particles, int numParti
     int cellSizeX = boundingBox[4];
     int cellSizeY = boundingBox[5];
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(9)
     for (int i = 0; i < numParticles; i++)
     {
         int particleIndex = sortedIndicesZI[i].location;

@@ -175,3 +175,51 @@ vector<int> unpack(vector<unsigned char> packedBytes, int numNeighbors)
 
     return unpackedValues;
 }
+
+int getMax(Particle* arr, int size)
+{
+    int m = arr[0].cellIndex;
+    for (int i = 1; i < size; i++)
+    {
+        if (arr[i].cellIndex > m)
+        {
+            m = arr[i].cellIndex;
+        }
+    }
+    return m;
+}
+
+void countingSort(Particle* arr, int size, int exp)
+{
+    vector<Particle> output(size);
+    int count[10] = { 0 };
+
+    for (int i = 0; i < size; i++) {
+        int digit = static_cast<int>(arr[i].cellIndex / exp) % 10;
+        count[digit]++;
+    }
+
+    for (int i = 1; i < 10; i++) {
+        count[i] += count[i - 1];
+    }
+
+    for (int i = size - 1; i >= 0; i--) {
+        int digit = static_cast<int>(arr[i].cellIndex / exp) % 10;
+        output[count[digit] - 1] = arr[i];
+        count[digit]--;
+    }
+
+    for (int i = 0; i < size; i++) {
+        arr[i] = output[i];
+    }
+}
+
+void radixSort(Particle* arr, int size)
+{
+    int maxCellIndex = getMax(arr, size);
+
+    for (int exp = 1; maxCellIndex / exp > 0; exp *= 10)
+    {
+        countingSort(arr, size, exp);
+    }
+}

@@ -33,6 +33,8 @@ void cellLinkedListConstruction(Particle* particles, int numParticles, float h)
         particles[j + 1] = current;
     }
 
+    // radixSort(particles, numParticles);
+
     // compact list of all non-empty cells from the sorted particle list
     // for each used cell store cell index and reference to first particle
     // number of particles: difference between particle references
@@ -166,6 +168,7 @@ void cellLinkedListQuery(Particle* particles, int numParticles, float h) // is p
                     }
                 }
                 particles[j].compressedNeighbors = compress(neighbors);
+                // particles[j].neighbors = neighbors;
             }
         }
     }

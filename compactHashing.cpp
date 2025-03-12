@@ -8,8 +8,8 @@ int hashTableSizeCH = 2000;
 int* hashTableCH = nullptr;
 vector<vector<int>> compactList;
 Handle* sortedIndicesCH = nullptr;
-int maxValCH = 10;
-int globalCounterCH = 10;
+int maxValCH = 140;
+int globalCounterCH = 140;
 
 
 void compactHashingConstruction(Particle* particles, int numParticles, float h) // TODO don't reset complete structure but move changed particles
@@ -314,7 +314,7 @@ void compactHashingConstructionHandleSortImproved(Particle* particles, int numPa
 
     if (hashTableCH == nullptr)
     {
-        hashTableSizeCH = 10 * numParticles; // larger hash table
+        hashTableSizeCH = 6 * numParticles; // larger hash table
         hashTableCH = new int[hashTableSizeCH];
     }
     memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int));
@@ -354,7 +354,7 @@ void compactHashingConstructionHandleSortImproved(Particle* particles, int numPa
     if (globalCounterCH == maxValCH)
     {
         // insertion sort every nth step // TODO only for handle structure?
-        for (size_t i = 1; i < numParticles; i++)
+        /*for (size_t i = 1; i < numParticles; i++)
         {
             Particle current = particles[i];
             int j = i - 1;
@@ -364,7 +364,9 @@ void compactHashingConstructionHandleSortImproved(Particle* particles, int numPa
                 j -= 1;
             }
             particles[j + 1] = current;
-        }
+        }*/
+        radixSort(particles, numParticles);
+
         // rebuild handle strucure
         int counter = 0;
         for (size_t i = 0; i < numParticles; i++)
@@ -399,7 +401,7 @@ void compactHashingConstructionHandleSortImprovedParallel(Particle* particles, i
 
     if (hashTableCH == nullptr)
     {
-        hashTableSizeCH = 10 * numParticles;
+        hashTableSizeCH = 6 * numParticles;
         hashTableCH = new int[hashTableSizeCH];
     }
     memset(&hashTableCH[0], 0, hashTableSizeCH * sizeof(int));
@@ -436,7 +438,7 @@ void compactHashingConstructionHandleSortImprovedParallel(Particle* particles, i
 
     if (globalCounterCH == maxValCH)
     {
-        for (size_t i = 1; i < numParticles; i++)
+        /*for (size_t i = 1; i < numParticles; i++)
         {
             Particle current = particles[i];
             int j = i - 1;
@@ -446,7 +448,9 @@ void compactHashingConstructionHandleSortImprovedParallel(Particle* particles, i
                 j -= 1;
             }
             particles[j + 1] = current;
-        }
+        }*/
+        radixSort(particles, numParticles);
+
         int counter = 0;
         for (size_t i = 0; i < numParticles; i++)
         {
